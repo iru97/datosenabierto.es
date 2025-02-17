@@ -8,11 +8,6 @@ export function useTransparencyData(params: {
   search?: string;
   year?: number;
 }) {
-  if (process.server) {
-    console.log("Ejecutando en el servidor");
-  } else if (process.client) {
-    console.log("Ejecutando en el cliente");
-  }
   const {
     data: contractsData,
     pending: contractsPending,
@@ -25,7 +20,11 @@ export function useTransparencyData(params: {
       search: params.search,
     },
   });
-
+  if (import.meta.env.SSR) {
+    console.log("Ejecutando en el servidor", contractsError);
+  } else {
+    console.log("Ejecutando en el cliente", contractsError);
+  }
   const {
     data: budgetData,
     pending: budgetPending,
