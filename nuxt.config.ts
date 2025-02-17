@@ -51,6 +51,9 @@ export default defineNuxtConfig({
         headers: { "cache-control": "public,max-age=31536000,immutable" },
       },
     },
+    output: {
+      publicDir: ".output/public",
+    },
   },
 
   typescript: {
