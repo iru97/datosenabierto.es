@@ -65,26 +65,68 @@ export interface Alert {
   link?: string;
 }
 
+export interface EducationData {
+  totalDatasets: number;
+  institutions: number;
+  lastUpdate: string;
+  stats: {
+    publicSchools: number;
+    privateSchools: number;
+    universities: number;
+    vocationalCenters: number;
+    studentTeacherRatio: number;
+    graduationRate: number;
+    dropoutRate: number;
+    investmentPerStudent: number;
+    digitalAdoption: number;
+    internationalPrograms: number;
+  };
+  trends: {
+    enrollmentChange: number;
+    budgetChange: number;
+    performanceIndex: number;
+    employabilityRate: number;
+  };
+  qualityMetrics: {
+    averageClassSize: number;
+    teacherQualification: number;
+    infrastructureScore: number;
+    studentSatisfaction: number;
+  };
+}
+
 export interface HealthData {
   totalDatasets: number;
   facilities: number;
   lastUpdate: string;
+  stats: {
+    hospitals: number;
+    healthCenters: number;
+    specialists: number;
+    emergencyUnits: number;
+  };
 }
 
 export interface MobilityData {
   totalDatasets: number;
   routes: number;
   lastUpdate: string;
+  stats: {
+    busLines: number;
+    metroLines: number;
+    trainLines: number;
+    bikeStations: number;
+  };
 }
 
 export interface EnvironmentData {
   totalDatasets: number;
   stations: number;
   lastUpdate: string;
-}
-
-export interface EducationData {
-  totalDatasets: number;
-  institutions: number;
-  lastUpdate: string;
+  stats: {
+    airQualityStations: number;
+    waterQualityStations: number;
+    protectedAreas: number;
+    recyclingCenters: number;
+  };
 }

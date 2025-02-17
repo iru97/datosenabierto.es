@@ -48,7 +48,7 @@ body {
   @apply text-gray-900 antialiased;
 }
 
-/* Transiciones de página */
+/* Page transitions */
 .page-enter-active,
 .page-leave-active {
   transition: all 0.15s ease-out;

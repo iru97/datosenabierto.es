@@ -1,9 +1,13 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useDebounce } from '@vueuse/core'
 
 export function useSearch() {
+  const router = useRouter()
   const searchQuery = ref('')
   const showResults = ref(false)
   const isSearching = ref(false)
+  const debouncedQuery = useDebounce(searchQuery, 300)
 
   const searchSuggestions = [
     'Presupuesto sanidad 2024',
@@ -32,6 +36,26 @@ export function useSearch() {
     ]
   }
 
+  // Watch for changes in debounced query
+  watch(debouncedQuery, async (newQuery) => {
+    if (newQuery.length < 2) {
+      showResults.value = false
+      return
+    }
+
+    isSearching.value = true
+    try {
+      // Here you would typically make an API call
+      // For now, we'll simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 300))
+      showResults.value = true
+    } catch (error) {
+      console.error('Error searching:', error)
+    } finally {
+      isSearching.value = false
+    }
+  })
+
   const handleSearch = () => {
     if (searchQuery.value.length < 2) {
       showResults.value = false
@@ -42,7 +66,7 @@ export function useSearch() {
     setTimeout(() => {
       isSearching.value = false
       showResults.value = true
-    }, 500)
+    }, 300)
   }
 
   const handleBlur = () => {
@@ -53,14 +77,23 @@ export function useSearch() {
 
   const handleEnterKey = () => {
     if (searchQuery.value.length >= 2) {
-      // Implementar búsqueda completa
-      console.log('Búsqueda completa:', searchQuery.value)
+      router.push({
+        path: '/buscar',
+        query: { q: searchQuery.value }
+      })
+      showResults.value = false
     }
   }
 
   const handleResultClick = (result: any) => {
-    console.log('Resultado seleccionado:', result)
-    // Implementar navegación al resultado
+    searchQuery.value = ''
+    showResults.value = false
+    router.push(result.path)
+  }
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    searchQuery.value = suggestion
+    handleSearch()
   }
 
   return {
@@ -72,6 +105,7 @@ export function useSearch() {
     handleSearch,
     handleBlur,
     handleEnterKey,
-    handleResultClick
+    handleResultClick,
+    handleSuggestionSelect
   }
 }

@@ -5,7 +5,6 @@ A data visualization platform that makes complex public data accessible and unde
 ## 🚀 Tech Stack
 
 ### Frontend
-
 - **Vue 3** - UI Framework
 - **Nuxt 3** - SSR Framework
 - **TypeScript** - Static Typing
@@ -15,32 +14,27 @@ A data visualization platform that makes complex public data accessible and unde
 - **Lucide Vue** - Icons
 
 ### Backend
-
 - **Nuxt Server** - REST API
 - **Zod** - Data Validation
 - **Netlify Functions** - Serverless
 
 ### Caching & State
-
 - **Pinia** - Global State
 - **Nuxt Cache** - SSR Cache
 
 ### Monitoring & Analytics
-
 - **OpenTelemetry** - Distributed Tracing
 - **Web Vitals** - Performance Metrics
 - **Netlify Analytics** - Usage Analytics
 - **k6** - Load Testing
 
 ### Testing
-
 - **Vitest** - Unit Testing
 - **Vue Test Utils** - Component Testing
 - **Playwright** - E2E Testing
 - **MSW** - API Mocking
 
 ### CI/CD & Deployment
-
 - **Netlify** - Hosting & Deployment
 - **Terser** - Minification
 - **Compression** - Brotli/Gzip
@@ -53,28 +47,23 @@ A data visualization platform that makes complex public data accessible and unde
 ## 🚀 Quick Start
 
 1. Clone the repository:
-
 ```bash
 git clone https://github.com/your-username/datosenabierto.git
 cd datosenabierto
 ```
 
 2. Install dependencies:
-
 ```bash
 npm install
 ```
 
 3. Set up environment variables:
-
 ```bash
 cp .env.example .env
 ```
-
 Edit `.env` with your values.
 
 4. Start development server:
-
 ```bash
 npm run dev
 ```
@@ -131,13 +120,11 @@ The application is configured for Netlify deployment with SSR (Server Side Rende
 1. Connect repository in Netlify
 2. Configure environment variables
 3. Deploy:
-
 ```bash
 npm run build
 ```
 
 The `netlify.toml` includes:
-
 ```toml
 [build]
   command = "npm run build"
@@ -153,7 +140,6 @@ The `netlify.toml` includes:
 ### API & SSR
 
 The application uses Nuxt Server to provide:
-
 - REST API with endpoints in `/server/api/`
 - SSR for better SEO and performance
 - Data validation with Zod
@@ -162,7 +148,6 @@ The application uses Nuxt Server to provide:
 ### Performance
 
 Implemented optimizations:
-
 - SSR for better First Contentful Paint
 - Aggressive static asset caching
 - Brotli/Gzip compression
@@ -174,7 +159,6 @@ Implemented optimizations:
 ## 📈 Monitoring
 
 ### Key Metrics
-
 - **Web Vitals**
   - LCP (Largest Contentful Paint)
   - FID (First Input Delay)
@@ -189,9 +173,7 @@ Implemented optimizations:
   - Bundle size
 
 ### Alerts
-
 The system generates alerts for:
-
 - High latency (>1000ms)
 - High error rate (>5%)
 - Low cache ratio (<80%)
@@ -199,19 +181,16 @@ The system generates alerts for:
 ## 🧪 Testing
 
 ### Unit Tests
-
 ```bash
 npm test
 ```
 
 ### E2E Tests
-
 ```bash
 npm run test:e2e
 ```
 
 ### Load Tests
-
 ```bash
 npm run test:load
 ```

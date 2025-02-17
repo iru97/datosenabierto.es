@@ -1,4 +1,7 @@
+import { defineEventHandler, createError } from 'h3'
 import { z } from 'zod'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 const environmentDataSchema = z.object({
   totalDatasets: z.number(),
@@ -14,23 +17,36 @@ const environmentDataSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   try {
-    const mockData = {
-      totalDatasets: 280,
-      stations: 345,
-      lastUpdate: new Date().toISOString(),
-      stats: {
-        airQualityStations: 156,
-        waterQualityStations: 189,
-        protectedAreas: 234,
-        recyclingCenters: 412
+    const config = useRuntimeConfig()
+    
+    // Fetch data from environment ministry API
+    const response = await $fetch(`${config.public.datosGobApiUrl}/environment/stats`, {
+      headers: {
+        'Accept': 'application/json'
       }
-    }
+    })
 
-    return environmentDataSchema.parse(mockData)
+    // Transform and validate the data
+    const validatedData = environmentDataSchema.parse({
+      totalDatasets: response.total_datasets,
+      stations: response.total_stations,
+      lastUpdate: format(new Date(response.last_update), 'yyyy-MM-dd\'T\'HH:mm:ssXXX'),
+      stats: {
+        airQualityStations: response.stats.air_quality_stations,
+        waterQualityStations: response.stats.water_quality_stations,
+        protectedAreas: response.stats.protected_areas,
+        recyclingCenters: response.stats.recycling_centers
+      }
+    })
+
+    return validatedData
   } catch (error) {
+    console.error('Error fetching environment data:', error)
+    
     throw createError({
-      statusCode: 500,
-      message: 'Error fetching environment data'
+      statusCode: error.response?.status || 500,
+      message: error.message || 'Error fetching environment data',
+      cause: error
     })
   }
 })

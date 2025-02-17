@@ -50,7 +50,7 @@
               <div>
                 <p class="text-sm text-gray-500">Instituciones</p>
                 <p class="text-2xl font-bold text-gray-900">
-                  {{ educationData?.institutions || 0 }}
+                  {{ stats?.totalInstitutions.toLocaleString() || 0 }}
                 </p>
               </div>
               <div class="bg-purple-100 p-3 rounded-full">
@@ -120,7 +120,11 @@
               </select>
             </div>
             <div class="h-80">
-              <!-- Implement chart with vue-chartjs -->
+              <ChartsPieChart
+                v-if="stats"
+                :data="stats.distribution.map(d => d.value)"
+                :labels="stats.distribution.map(d => d.label)"
+              />
             </div>
           </div>
 
@@ -140,6 +144,63 @@
             </div>
           </div>
         </div>
+
+        <!-- Additional Information -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+              <GraduationCap class="h-5 w-5 mr-2 text-purple-600" />
+              Indicadores Clave
+            </h3>
+            <div class="space-y-4">
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Ratio alumno/profesor</span>
+                <span class="font-medium">12.5:1</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Tasa de graduación</span>
+                <span class="font-medium">78.3%</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Abandono escolar</span>
+                <span class="font-medium">13.2%</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Inversión por alumno</span>
+                <span class="font-medium">6.842€</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+              <TrendingUp class="h-5 w-5 mr-2 text-green-600" />
+              Tendencias Recientes
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-start space-x-3">
+                <ArrowUpRight class="h-5 w-5 text-green-500 mt-0.5" />
+                <div>
+                  <p class="font-medium">Aumento en matriculación FP</p>
+                  <p class="text-sm text-gray-600">
+                    Incremento del 15% en matriculaciones de Formación Profesional
+                    respecto al año anterior.
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-start space-x-3">
+                <ArrowUpRight class="h-5 w-5 text-green-500 mt-0.5" />
+                <div>
+                  <p class="font-medium">Mejora en digitalización</p>
+                  <p class="text-sm text-gray-600">
+                    El 92% de los centros han implementado nuevas herramientas
+                    digitales en el último año.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
     </div>
   </main>
@@ -149,11 +210,11 @@
 import { ref, computed } from 'vue'
 import { 
   School, Database, Clock, CheckCircle, Download, Filter,
-  TrendingUp
+  TrendingUp, GraduationCap, ArrowUpRight
 } from 'lucide-vue-next'
 
 const timeRange = ref('year')
-const { data: educationData, isLoading, isError, refresh } = useEducationData()
+const { data: educationData, stats, isLoading, isError, refresh } = useEducationData()
 const { generateTimeLabels, generateRandomData } = useChartData(timeRange)
 
 const timeLabels = computed(() => generateTimeLabels.value)

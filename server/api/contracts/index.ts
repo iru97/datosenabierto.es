@@ -1,4 +1,7 @@
+import { defineEventHandler, createError, getQuery } from 'h3'
 import { z } from 'zod'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 const contractSchema = z.object({
   id: z.string(),
@@ -29,47 +32,55 @@ const contractsResponseSchema = z.object({
 export default defineEventHandler(async (event) => {
   try {
     const query = getQuery(event)
+    const config = useRuntimeConfig()
     
-    // Mock data - En producción, esto vendría de una base de datos
-    const mockData = {
-      contracts: [
-        {
-          id: '1',
-          title: 'Construcción de Hospital Universitario',
-          description: 'Proyecto de construcción del nuevo hospital universitario',
-          amount: 120000000,
-          department: 'Sanidad',
-          status: 'in_progress',
-          priority: 'high',
-          publishedAt: '2024-01-15T10:00:00Z',
-          updatedAt: '2024-02-01T15:30:00Z',
-          documents: [
-            {
-              id: 'doc1',
-              type: 'specifications',
-              title: 'Pliego de Condiciones',
-              url: '#',
-              uploadedAt: '2024-01-15T10:00:00Z',
-              size: 2500000,
-              format: 'pdf'
-            }
-          ]
-        }
-      ],
-      total: 1
-    }
+    // Build query parameters
+    const params = new URLSearchParams()
+    if (query.page) params.append('page', String(query.page))
+    if (query.limit) params.append('limit', String(query.limit))
+    if (query.department) params.append('department', String(query.department))
+    if (query.search) params.append('q', String(query.search))
 
-    // Validar datos con Zod
-    const validatedData = contractsResponseSchema.parse(mockData)
+    // Fetch data from contracting API
+    const response = await $fetch(`${config.public.contratacionApiUrl}/contracts?${params.toString()}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+
+    // Transform and validate the data
+    const validatedData = contractsResponseSchema.parse({
+      contracts: response.items.map((contract: any) => ({
+        id: contract.contract_id,
+        title: contract.title,
+        description: contract.description,
+        amount: contract.amount,
+        department: contract.department,
+        status: contract.status,
+        priority: contract.priority,
+        publishedAt: format(new Date(contract.published_at), 'yyyy-MM-dd\'T\'HH:mm:ssXXX'),
+        updatedAt: format(new Date(contract.updated_at), 'yyyy-MM-dd\'T\'HH:mm:ssXXX'),
+        documents: contract.documents.map((doc: any) => ({
+          id: doc.document_id,
+          type: doc.type,
+          title: doc.title,
+          url: doc.url,
+          uploadedAt: format(new Date(doc.uploaded_at), 'yyyy-MM-dd\'T\'HH:mm:ssXXX'),
+          size: doc.size,
+          format: doc.format
+        }))
+      })),
+      total: response.total
+    })
 
     return validatedData
   } catch (error) {
-    if (error.name === 'ZodError') {
-      throw createError({
-        statusCode: 500,
-        message: 'Data validation error'
-      })
-    }
-    throw error
+    console.error('Error fetching contracts data:', error)
+    
+    throw createError({
+      statusCode: error.response?.status || 500,
+      message: error.message || 'Error fetching contracts data',
+      cause: error
+    })
   }
 })

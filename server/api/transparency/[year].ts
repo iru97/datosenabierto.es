@@ -1,4 +1,7 @@
+import { defineEventHandler, createError, getRouterParam } from 'h3'
 import { z } from 'zod'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 const budgetSchema = z.object({
   total: z.number(),
@@ -25,29 +28,36 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Datos más realistas basados en presupuestos reales
-    const mockData = {
-      total: 196091000000, // 196.091 millones € (Presupuesto 2024)
-      departments: [
-        { name: 'Seguridad Social', amount: 204470000000, percentage: 31.2 },
-        { name: 'Sanidad', amount: 113220000000, percentage: 17.3 },
-        { name: 'Educación', amount: 89650000000, percentage: 13.7 },
-        { name: 'Defensa', amount: 75340000000, percentage: 11.5 },
-        { name: 'Infraestructuras', amount: 68920000000, percentage: 10.5 },
-        { name: 'Otros', amount: 103400000000, percentage: 15.8 }
-      ],
-      period: { year: parseInt(year) }
-    }
+    const config = useRuntimeConfig()
+    
+    // Fetch data from transparency API
+    const response = await $fetch(`${config.public.transparencyApiUrl}/budgets/${year}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
 
-    const validatedData = budgetSchema.parse(mockData)
+    // Transform and validate the data
+    const validatedData = budgetSchema.parse({
+      total: response.total_budget,
+      departments: response.departments.map((dept: any) => ({
+        name: dept.department_name,
+        amount: dept.budget_amount,
+        percentage: (dept.budget_amount / response.total_budget) * 100
+      })),
+      period: {
+        year: parseInt(year)
+      }
+    })
+
     return validatedData
   } catch (error) {
-    if (error.name === 'ZodError') {
-      throw createError({
-        statusCode: 500,
-        message: 'Data validation error'
-      })
-    }
-    throw error
+    console.error('Error fetching budget data:', error)
+    
+    throw createError({
+      statusCode: error.response?.status || 500,
+      message: error.message || 'Error fetching budget data',
+      cause: error
+    })
   }
 })
