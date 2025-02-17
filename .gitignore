@@ -1,24 +1,89 @@
-# Logs
+# Dependencies
+node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+.pnpm-debug.log*
 lerna-debug.log*
+.node_repl_history
+*.tsbuildinfo
 
-node_modules
-dist
-dist-ssr
-*.local
+# Testing
+coverage
+.nyc_output
+*.lcov
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+# IDEs and editors
 .idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Vim swap files
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# System files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.temp
+.tmp
+.temp
+
+# Nuxt generate
+.generated
+
+# Local Netlify folder
+.netlify
+
+# Build artifacts
+*.tgz
+*.tar.gz
+*.zip
+
+# Debug files
+.debug
+*.debug
+
+# Misc
+*.bak
+*.swp
+*~
+.history/
