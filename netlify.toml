@@ -6,6 +6,18 @@
 [build.environment]
   NODE_VERSION = "18.20.3"
 
+# Make sure _nuxt assets are NOT redirected to the server function
+[[redirects]]
+  from = "/_nuxt/*"
+  to = "/_nuxt/:splat"
+  status = 200
+
+# Catch-all rule for everything else goes to SSR
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/server"
