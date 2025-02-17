@@ -1,5 +1,5 @@
-import { ref, computed } from 'vue'
-import type { Contract, BudgetDistribution, Alert } from '~/types'
+import { ref, computed } from "vue";
+import type { Contract, BudgetDistribution, Alert } from "~/types";
 
 export function useTransparencyData(params: {
   page?: number;
@@ -8,16 +8,29 @@ export function useTransparencyData(params: {
   search?: string;
   year?: number;
 }) {
-  const { data: contractsData, pending: contractsPending, error: contractsError } = useFetch('/api/contracts', {
+  if (process.server) {
+    console.log("Ejecutando en el servidor");
+  } else if (process.client) {
+    console.log("Ejecutando en el cliente");
+  }
+  const {
+    data: contractsData,
+    pending: contractsPending,
+    error: contractsError,
+  } = useFetch("/api/contracts", {
     params: {
       page: params.page,
       limit: params.limit,
       department: params.department,
-      search: params.search
-    }
-  })
+      search: params.search,
+    },
+  });
 
-  const { data: budgetData, pending: budgetPending, error: budgetError } = useFetch(`/api/transparency/${params.year || new Date().getFullYear()}`)
+  const {
+    data: budgetData,
+    pending: budgetPending,
+    error: budgetError,
+  } = useFetch(`/api/transparency/${params.year || new Date().getFullYear()}`);
 
   return {
     contracts: computed(() => (contractsData.value as any)?.contracts || []),
@@ -26,6 +39,6 @@ export function useTransparencyData(params: {
     alerts: computed(() => [] as Alert[]),
     isLoading: computed(() => contractsPending.value || budgetPending.value),
     isError: computed(() => !!contractsError.value || !!budgetError.value),
-    error: computed(() => contractsError.value || budgetError.value)
-  }
+    error: computed(() => contractsError.value || budgetError.value),
+  };
 }
