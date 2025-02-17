@@ -1,17 +1,8 @@
 export default defineNuxtConfig({
-  modules: [
-    "@nuxtjs/tailwindcss",
-    "@pinia/nuxt",
-    "@nuxtjs/robots",
-    "@nuxtjs/sitemap",
-    "@vueuse/nuxt",
-  ],
+  modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
 
   app: {
     head: {
-      htmlAttrs: {
-        lang: "es",
-      },
       title: "DatosEnAbierto - Visualización de Datos Públicos",
       meta: [
         { charset: "utf-8" },
@@ -19,46 +10,33 @@ export default defineNuxtConfig({
         {
           name: "description",
           content:
-            "Plataforma líder en visualización de datos públicos. Accede a información sobre transparencia, salud, movilidad, medio ambiente y educación de forma clara y comprensible.",
-        },
-        { name: "theme-color", content: "#3b82f6" },
-        { name: "format-detection", content: "telephone=no" },
-        { property: "og:type", content: "website" },
-        {
-          property: "og:title",
-          content: "DatosEnAbierto - Visualización de Datos Públicos",
-        },
-        {
-          property: "og:description",
-          content:
-            "Accede a datos públicos de forma clara y comprensible. Transparencia, salud, movilidad, medio ambiente y educación.",
-        },
-        { property: "og:image", content: "/og-image.jpg" },
-        { name: "twitter:card", content: "summary_large_image" },
-        {
-          name: "twitter:title",
-          content: "DatosEnAbierto - Datos Públicos Visualizados",
-        },
-        {
-          name: "twitter:description",
-          content:
-            "Explora datos públicos de forma interactiva y comprensible.",
+            "Plataforma de visualización de datos públicos que facilita el acceso a información compleja de manera clara y comprensible.",
         },
       ],
-      link: [
-        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-        { rel: "canonical", href: "https://datosenabierto.es" },
-      ],
+      link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
     },
   },
 
   runtimeConfig: {
+    // Private keys that are exposed to the server
+    apiSecret: process.env.NUXT_API_SECRET || "default_secret",
+
+    // Public keys that are exposed to the client
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || "/api",
-      datosGobApiUrl: process.env.NUXT_PUBLIC_DATOS_GOB_API_URL,
-      contratacionApiUrl: process.env.NUXT_PUBLIC_CONTRATACION_API_URL,
-      transparencyApiUrl: process.env.NUXT_PUBLIC_TRANSPARENCY_API_URL,
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || "https://datosenabierto.es",
+      apiBase: "/api",
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || "http://localhost:3000",
+      datosGobApiUrl:
+        process.env.NUXT_PUBLIC_DATOS_GOB_API_URL ||
+        "http://localhost:3000/api/mock/datos",
+      contratacionApiUrl:
+        process.env.NUXT_PUBLIC_CONTRATACION_API_URL ||
+        "http://localhost:3000/api/mock/contratacion",
+      transparencyApiUrl:
+        process.env.NUXT_PUBLIC_TRANSPARENCY_API_URL ||
+        "http://localhost:3000/api/mock/transparency",
+      backupApiUrl:
+        process.env.NUXT_PUBLIC_BACKUP_API_URL ||
+        "http://localhost:3000/api/mock/backup",
     },
   },
 
@@ -74,23 +52,6 @@ export default defineNuxtConfig({
       },
     },
   },
-  ssr: true,
-  robots: {
-    UserAgent: "*",
-    Allow: "/",
-    Sitemap: "https://datosenabierto.es/sitemap.xml",
-  },
-
-  sitemap: {
-    hostname: "https://datosenabierto.es",
-    gzip: true,
-    exclude: ["/404", "/server-error"],
-    defaults: {
-      changefreq: "daily",
-      priority: 0.8,
-      lastmod: new Date().toISOString(),
-    },
-  },
 
   typescript: {
     strict: true,
@@ -103,18 +64,18 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      include: [
-        "chart.js",
-        "vue-chartjs",
-        "lucide-vue-next",
-        "date-fns",
-        "numeral",
-      ],
+      include: ["chart.js", "vue-chartjs", "lucide-vue-next"],
     },
     build: {
       rollupOptions: {
         external: ["chart.js"],
       },
     },
+  },
+
+  ssr: true,
+
+  experimental: {
+    payloadExtraction: false,
   },
 });

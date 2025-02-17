@@ -1,21 +1,22 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  functions = ".netlify/functions-internal"
+  functions = ".output/server"
 
 [build.environment]
   NODE_VERSION = "18.20.3"
+  NITRO_PRESET = "netlify"
 
-# Make sure _nuxt assets are NOT redirected to the server function
+# API endpoints
 [[redirects]]
-  from = "/_nuxt/*"
-  to = "/_nuxt/:splat"
+  from = "/api/*"
+  to = "/.netlify/functions/server/api/:splat"
   status = 200
 
-# Catch-all rule for everything else goes to SSR
+# SPA fallback
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/server"
+  to = "/index.html"
   status = 200
 
 [[headers]]
