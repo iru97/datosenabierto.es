@@ -1,0 +1,28 @@
+{
+  "name": "boe-viewer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "nuxt": "^3.13.0",
+    "@heroicons/vue": "^2.1.1",
+    "@nuxtjs/tailwindcss": "^6.11.4",
+    "@vueuse/core": "^10.9.0",
+    "chart.js": "^4.4.2",
+    "vue-chartjs": "^5.3.0",
+    "date-fns": "^2.30.0",
+    "date-fns-tz": "^2.0.0",
+    "v-calendar": "^3.1.2",
+    "h3": "^1.11.1",
+    "ofetch": "^1.3.3",
+    "fast-xml-parser": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.28"
+  }
+}
