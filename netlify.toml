@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = ".output/public"
+  functions = ".output/server"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  # Redirección de todas las rutas a la función SSR de Nitro
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
