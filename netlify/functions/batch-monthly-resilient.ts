@@ -127,13 +127,17 @@ export const handler = schedule('0 2 1 * *', async (event) => {
     // 4. LLENAR COLA DE PROCESAMIENTO
     // ================================================================
 
-    // Obtener documentos del periodo que NO estén ya en la cola
+    // Obtener documentos del periodo ordenados de MÁS RECIENTE a MÁS ANTIGUO
+    // 📅 IMPORTANTE: Este orden determina el orden de procesamiento
+    //    - Los documentos se añaden a la cola en este orden
+    //    - La cola procesa en FIFO (First In First Out)
+    //    - Por tanto: Enero 31 → Enero 30 → ... → Enero 1
     const { data: documentos } = await supabase
       .from('documentos_boe')
-      .select('boe_id, categoria_id, categorias(prioridad)')
+      .select('boe_id, categoria_id, fecha_publicacion, categorias(prioridad)')
       .gte('fecha_publicacion', fechaInicio)
       .lte('fecha_publicacion', fechaFin)
-      .order('fecha_publicacion', { ascending: false })
+      .order('fecha_publicacion', { ascending: false }) // ← Más recientes primero
 
     if (!documentos || documentos.length === 0) {
       console.log('⚠️ No hay documentos para procesar en este periodo')
@@ -144,9 +148,10 @@ export const handler = schedule('0 2 1 * *', async (event) => {
       }
     }
 
-    console.log(`📝 Añadiendo ${documentos.length} documentos a la cola...`)
+    console.log(`📝 Añadiendo ${documentos.length} documentos a la cola (más recientes primero)...`)
 
     // Añadir a la cola con prioridad según categoría
+    // Los documentos se añaden en orden: más reciente → más antiguo
     let added = 0
     for (const doc of documentos) {
       const prioridadCategoria = (doc as any).categorias?.prioridad || 0
@@ -163,6 +168,10 @@ export const handler = schedule('0 2 1 * *', async (event) => {
     }
 
     console.log(`✅ Añadidos a la cola: ${added}/${documentos.length} documentos`)
+    if (documentos.length > 0) {
+      console.log(`   → Primer documento: ${(documentos[0] as any).fecha_publicacion} (más reciente)`)
+      console.log(`   → Último documento: ${(documentos[documentos.length - 1] as any).fecha_publicacion} (más antiguo)`)
+    }
 
     // ================================================================
     // 5. PROCESAMIENTO POR LOTES CON CONTROL DE PRESUPUESTO

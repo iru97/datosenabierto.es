@@ -140,6 +140,13 @@ export async function addManyToQueue(items: QueueItem[]): Promise<number> {
  * Obtiene el siguiente lote de documentos a procesar
  * Respeta prioridades y límite de coste
  *
+ * ORDEN DE PROCESAMIENTO:
+ * 1️⃣ Por prioridad (descendente): 2 (urgente) > 1 (alta) > 0 (normal)
+ * 2️⃣ Por fecha de agregado (ascendente): FIFO (First In First Out)
+ *
+ * Esto significa que si añades documentos en orden cronológico inverso
+ * (más recientes primero), se procesarán en ese mismo orden.
+ *
  * @param batchSize Número máximo de documentos
  * @param maxCost Coste máximo del lote en USD
  * @returns Array de items a procesar
@@ -150,14 +157,16 @@ export async function getNextBatch(
 ): Promise<QueueItem[]> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-  // Obtener items pendientes ordenados por prioridad
+  // Obtener items pendientes ordenados por:
+  // 1️⃣ Prioridad (alta primero)
+  // 2️⃣ Fecha agregado (FIFO = primero agregado, primero procesado)
   const { data: items, error } = await supabase
     .from('cola_procesamiento')
     .select('*')
     .eq('estado', 'pendiente')
     .lt('intentos', supabase.rpc('max_intentos')) // Solo items con intentos disponibles
-    .order('prioridad', { ascending: false })
-    .order('fecha_agregado', { ascending: true })
+    .order('prioridad', { ascending: false })      // ← Prioridad alta primero
+    .order('fecha_agregado', { ascending: true })  // ← FIFO
     .limit(batchSize * 2) // Obtener más para filtrar por coste
 
   if (error || !items) {
