@@ -23,9 +23,25 @@
 # Netlify Functions programadas para ejecutarse automáticamente
 # Docs: https://docs.netlify.com/functions/scheduled-functions/
 
-# Procesamiento Semanal del BOE
+# ================================================================
+# FUNCIÓN MENSUAL RESILIENTE (RECOMENDADA)
+# ================================================================
+# Se ejecuta el día 1 de cada mes a las 2:00 AM UTC
+# Procesa todos los documentos del mes anterior con:
+# - Control de presupuesto (pausa si se agota)
+# - Checkpoints (reanuda donde se quedó)
+# - Prioridad por fecha (más recientes primero)
+[[functions]]
+  name = "batch-monthly-resilient"
+  schedule = "0 2 1 * *"  # Cron: Día 1 del mes a las 2:00 AM UTC
+  timeout = 900  # 15 minutos (se auto-pausa y reanuda)
+
+# ================================================================
+# FUNCIÓN SEMANAL (LEGACY - Sin control de presupuesto)
+# ================================================================
 # Se ejecuta cada domingo a las 7:00 AM UTC (8:00 AM CET / 9:00 AM CEST)
 # Procesa todos los documentos BOE de la semana anterior
+# NOTA: Esta función NO tiene control de presupuesto
 [[functions]]
   name = "scheduled-weekly-processing"
   schedule = "0 7 * * 0"  # Cron: Domingos a las 7:00 AM UTC
