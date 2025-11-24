@@ -193,7 +193,20 @@ import {
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
-// SEO
+// State - DEBE estar ANTES de los computed que lo usan
+const loading = ref(true)
+const error = ref<string | null>(null)
+const categoria = ref<Categoria | null>(null)
+const documentos = ref<Documento[]>([])
+const estadisticaSemanal = ref<Estadistica | null>(null)
+const totalDocumentos = ref(0)
+const documentosImportantes = ref(0)
+const page = ref(0)
+const limit = 20
+const hasMore = ref(true)
+const loadingMore = ref(false)
+
+// SEO - Ahora categoria ya está declarado
 const title = computed(() =>
   categoria.value ? `${categoria.value.nombre} - BOE Explicado` : 'Cargando...'
 )
@@ -211,19 +224,6 @@ useHead({
     },
   ],
 })
-
-// State
-const loading = ref(true)
-const error = ref<string | null>(null)
-const categoria = ref<Categoria | null>(null)
-const documentos = ref<Documento[]>([])
-const estadisticaSemanal = ref<Estadistica | null>(null)
-const totalDocumentos = ref(0)
-const documentosImportantes = ref(0)
-const page = ref(0)
-const limit = 20
-const hasMore = ref(true)
-const loadingMore = ref(false)
 
 // Computed
 const ultimaActualizacion = computed(() => {
