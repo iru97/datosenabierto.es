@@ -16,3 +16,17 @@
   for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
+
+# ================================================================
+# SCHEDULED FUNCTIONS
+# ================================================================
+# Netlify Functions programadas para ejecutarse automáticamente
+# Docs: https://docs.netlify.com/functions/scheduled-functions/
+
+# Procesamiento Semanal del BOE
+# Se ejecuta cada domingo a las 7:00 AM UTC (8:00 AM CET / 9:00 AM CEST)
+# Procesa todos los documentos BOE de la semana anterior
+[[functions]]
+  name = "scheduled-weekly-processing"
+  schedule = "0 7 * * 0"  # Cron: Domingos a las 7:00 AM UTC
+  timeout = 900  # 15 minutos (máximo permitido)
