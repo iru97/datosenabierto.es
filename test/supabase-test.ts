@@ -18,15 +18,39 @@ const __dirname = dirname(__filename)
 
 config({ path: resolve(__dirname, '../.env') })
 
-import { getCategorias } from '../utils/supabase'
+// Import direct Supabase client for testing
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.SUPABASE_URL || ''
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || ''
 
 async function testSupabase() {
   console.log('🧪 Testing Supabase connection...\n')
 
-  try {
-    const categorias = await getCategorias()
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('❌ Error: Supabase credentials not found in .env file')
+    console.error('💡 Make sure your .env file contains:')
+    console.error('   SUPABASE_URL=https://your-project.supabase.co')
+    console.error('   SUPABASE_ANON_KEY=your-anon-key\n')
+    process.exit(1)
+  }
 
-    if (categorias.length === 12) {
+  try {
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    // Test connection by fetching categories
+    const { data: categorias, error } = await supabase
+      .from('categorias')
+      .select('*')
+      .eq('activa', true)
+      .order('prioridad', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    if (categorias && categorias.length === 12) {
       console.log('✅ Supabase connected successfully!')
       console.log(`📋 Categorías encontradas: ${categorias.length}\n`)
 
@@ -41,7 +65,7 @@ async function testSupabase() {
       console.log('✨ Test completado exitosamente!\n')
       process.exit(0)
     } else {
-      console.error(`❌ Error: Expected 12 categorias, got ${categorias.length}`)
+      console.error(`❌ Error: Expected 12 categorias, got ${categorias?.length || 0}`)
       console.error('Verifica que ejecutaste el schema.sql correctamente\n')
       process.exit(1)
     }

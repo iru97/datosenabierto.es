@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { getCategorias, type Categoria } from '~/utils/supabase'
+import { getCategorias, type Categoria } from '~/composables/useSupabase'
 
 // SEO
 useHead({

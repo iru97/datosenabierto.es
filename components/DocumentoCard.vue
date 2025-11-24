@@ -202,7 +202,7 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { Documento, Categoria } from '~/utils/supabase'
+import type { Documento, Categoria } from '~/composables/useSupabase'
 
 // Props
 const props = defineProps<{

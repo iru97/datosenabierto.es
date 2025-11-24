@@ -187,7 +187,7 @@ import {
   type Categoria,
   type Documento,
   type Estadistica,
-} from '~/utils/supabase'
+} from '~/composables/useSupabase'
 
 // Route
 const route = useRoute()
