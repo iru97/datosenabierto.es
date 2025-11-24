@@ -127,32 +127,53 @@
         </div>
       </div>
 
+      <!-- Filters -->
+      <div class="container mx-auto px-4 py-8">
+        <FiltrosInteligentes
+          :categorias="[{ value: slug, label: categoria.nombre }]"
+          :resultados-count="documentosFiltrados.length"
+          @filtros-changed="aplicarFiltros"
+        />
+      </div>
+
+      <!-- Timeline of Important Dates -->
+      <div v-if="fechasImportantes.length > 0" class="container mx-auto px-4 py-8">
+        <TimelineFechas
+          :fechas="fechasImportantes"
+          :titulo="`Fechas importantes en ${categoria.nombre}`"
+          :descripcion="'Plazos y fechas clave de los documentos de esta categoría'"
+          @ver-documento="abrirDocumento"
+        />
+      </div>
+
       <!-- Documents List -->
       <div class="container mx-auto px-4 py-8">
         <!-- No documents state -->
-        <div v-if="documentos.length === 0" class="text-center py-12">
+        <div v-if="documentosFiltrados.length === 0" class="text-center py-12">
           <div class="text-6xl mb-4">📭</div>
           <h3 class="text-2xl font-bold text-gray-800 mb-2">
-            No hay documentos esta semana
+            {{ filtrosActivos ? 'No hay documentos con estos filtros' : 'No hay documentos esta semana' }}
           </h3>
           <p class="text-gray-600">
-            No se han publicado documentos en esta categoría durante la última semana.
-            Vuelve a consultar próximamente.
+            {{ filtrosActivos
+              ? 'Intenta cambiar los filtros para ver más documentos'
+              : 'No se han publicado documentos en esta categoría durante la última semana. Vuelve a consultar próximamente.'
+            }}
           </p>
         </div>
 
-        <!-- Documents Grid -->
-        <div v-else class="space-y-6">
-          <DocumentoCard
-            v-for="documento in documentos"
+        <!-- Documents Grid with Educational Cards -->
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DocumentoCardEducativo
+            v-for="documento in documentosFiltrados"
             :key="documento.id"
             :documento="documento"
-            :categoria="categoria"
+            @ver-detalle="abrirDetalle(documento)"
           />
         </div>
 
         <!-- Load More -->
-        <div v-if="hasMore" class="text-center mt-8">
+        <div v-if="hasMore && !filtrosActivos" class="text-center mt-8">
           <button
             @click="loadMore"
             :disabled="loadingMore"
@@ -162,6 +183,13 @@
           </button>
         </div>
       </div>
+
+      <!-- Document Detail Modal -->
+      <DocumentoDetalle
+        v-if="documentoSeleccionado"
+        v-model="modalAbierto"
+        :documento="documentoSeleccionado"
+      />
 
       <!-- Help Section -->
       <div class="container mx-auto px-4 py-12">
@@ -204,6 +232,10 @@ import {
   type Estadistica,
 } from '~/composables/useSupabase'
 import { CATEGORIA_INFO } from '~/utils/categoria-info'
+import FiltrosInteligentes from '~/components/FiltrosInteligentes.vue'
+import TimelineFechas from '~/components/TimelineFechas.vue'
+import DocumentoCardEducativo from '~/components/DocumentoCardEducativo.vue'
+import DocumentoDetalle from '~/components/DocumentoDetalle.vue'
 
 // Route
 const route = useRoute()
@@ -226,6 +258,11 @@ const page = ref(0)
 const limit = 20
 const hasMore = ref(true)
 const loadingMore = ref(false)
+
+// New state for filters and modal
+const filtrosActivos = ref<any>(null)
+const modalAbierto = ref(false)
+const documentoSeleccionado = ref<any>(null)
 
 // SEO - Ahora categoria ya está declarado
 const title = computed(() =>
@@ -251,6 +288,64 @@ const ultimaActualizacion = computed(() => {
   if (!documentos.value.length) return 'N/A'
   const ultimaFecha = documentos.value[0].fecha_publicacion
   return format(new Date(ultimaFecha), 'dd MMM', { locale: es })
+})
+
+// Filtered documents
+const documentosFiltrados = computed(() => {
+  if (!filtrosActivos.value) return documentos.value
+
+  let docs = [...documentos.value]
+
+  if (filtrosActivos.value.plazo) {
+    const dias = parseInt(filtrosActivos.value.plazo)
+    docs = docs.filter((d: any) => {
+      if (!d.fechaImportante?.diasRestantes) return false
+      return d.fechaImportante.diasRestantes <= dias
+    })
+  }
+
+  if (filtrosActivos.value.publicacion) {
+    const dias = parseInt(filtrosActivos.value.publicacion)
+    const fechaLimite = new Date()
+    fechaLimite.setDate(fechaLimite.getDate() - dias)
+    docs = docs.filter((d: any) => {
+      const fechaPub = new Date(d.fecha_publicacion)
+      return fechaPub >= fechaLimite
+    })
+  }
+
+  if (filtrosActivos.value.organismo) {
+    docs = docs.filter((d: any) =>
+      d.organismo?.toLowerCase().includes(filtrosActivos.value.organismo.toLowerCase())
+    )
+  }
+
+  return docs
+})
+
+// Important dates timeline
+const fechasImportantes = computed(() => {
+  const fechas: any[] = []
+
+  documentos.value.forEach((doc: any) => {
+    if (doc.fechas && Array.isArray(doc.fechas)) {
+      doc.fechas.forEach((fecha: any) => {
+        fechas.push({
+          ...fecha,
+          documentoId: doc.id,
+          documentoTitulo: doc.titulo,
+          urlPdf: doc.url_pdf,
+        })
+      })
+    }
+  })
+
+  return fechas.sort((a, b) => {
+    const urgenciaOrder: any = { URGENTE: 0, PRÓXIMO: 1, NUEVO: 2, NORMAL: 3 }
+    const urgenciaCompare = urgenciaOrder[a.urgencia] - urgenciaOrder[b.urgencia]
+    if (urgenciaCompare !== 0) return urgenciaCompare
+    return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+  })
 })
 
 // Methods
@@ -316,6 +411,22 @@ async function loadMore() {
   page.value++
   await fetchDocumentos()
   loadingMore.value = false
+}
+
+function aplicarFiltros(filtros: any) {
+  filtrosActivos.value = Object.values(filtros).some((v) => v !== '') ? filtros : null
+}
+
+function abrirDetalle(documento: any) {
+  documentoSeleccionado.value = documento
+  modalAbierto.value = true
+}
+
+function abrirDocumento(documentoId: string) {
+  const doc = documentos.value.find((d: any) => d.id === documentoId)
+  if (doc) {
+    abrirDetalle(doc)
+  }
 }
 
 // Lifecycle
