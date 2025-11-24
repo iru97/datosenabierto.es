@@ -81,6 +81,18 @@
         </div>
       </div>
 
+      <!-- Sección Educativa: ¿Qué es esta categoría? -->
+      <div class="container mx-auto px-4 py-8">
+        <CategoriaSEccionEducativa
+          :icono="categoria.icono"
+          :titulo="`¿Qué encontrarás en ${categoria.nombre}?`"
+          :descripcion="`Te explicamos de forma clara y sencilla qué tipo de información publicará el BOE en esta categoría`"
+          :que-encontraras="categoriaInfoData?.queEncontraras || []"
+          :para-quien="categoriaInfoData?.paraQuien || []"
+          :consejos="categoriaInfoData?.consejos || []"
+        />
+      </div>
+
       <!-- Weekly Summary (if available) -->
       <div v-if="estadisticaSemanal" class="container mx-auto px-4 py-8">
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border-l-4" :style="{ borderLeftColor: categoria.color }">
@@ -191,10 +203,16 @@ import {
   type Documento,
   type Estadistica,
 } from '~/composables/useSupabase'
+import { CATEGORIA_INFO } from '~/utils/categoria-info'
 
 // Route
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
+
+// Información educativa de la categoría
+const categoriaInfoData = computed(() => {
+  return CATEGORIA_INFO[slug.value]
+})
 
 // State - DEBE estar ANTES de los computed que lo usan
 const loading = ref(true)
