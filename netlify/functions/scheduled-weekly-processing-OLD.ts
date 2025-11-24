@@ -8,16 +8,17 @@
  * 1. Obtener todos los sumarios de la semana pasada
  * 2. Clasificar documentos por categoría
  * 3. Extraer datos estructurados de cada documento
- * 4. Generar explicaciones con LLM (OpenAI o Anthropic)
+ * 4. Generar explicaciones con Claude AI
  * 5. Guardar en Supabase
  * 6. Generar estadísticas semanales
  *
  * Schedule: Domingos 7:00 AM UTC (configurado en netlify.toml)
  * Timeout: 15 minutos
- * Modelo LLM: GPT-4o-mini o Claude 3.5 Haiku (el que esté configurado)
+ * Modelo LLM: Claude 3.5 Haiku (económico y rápido)
  */
 
 import { schedule } from "@netlify/functions";
+import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../types/supabase";
 import {
@@ -29,12 +30,9 @@ import {
   type CategoriaSlug,
 } from "../../utils/boe-api";
 import {
-  generateText,
-  getCurrentModel,
-  estimateCost,
-  getLLMProvider,
-} from "../../utils/llm";
-import {
+  subDays,
+  startOfWeek,
+  endOfWeek,
   format,
   previousSunday,
   previousSaturday,
@@ -46,11 +44,14 @@ import {
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY!;
 
-// Crear cliente Supabase
+// Crear clientes
 const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
+const anthropic = new Anthropic({ apiKey: anthropicApiKey });
 
 // Configuración LLM
+const LLM_MODEL = "claude-3-5-haiku-20241022";
 const LLM_MAX_TOKENS = 1024;
 
 // ================================================================
@@ -72,8 +73,6 @@ interface ProcessingStats {
 
 const handler = schedule("0 7 * * 0", async (event) => {
   console.log("🚀 Iniciando procesamiento semanal del BOE...");
-  console.log(`📡 LLM Provider: ${getLLMProvider()}`);
-  console.log(`🤖 Model: ${getCurrentModel()}`);
 
   const startTime = new Date();
   const stats: ProcessingStats = {
@@ -347,7 +346,7 @@ async function procesarDocumento(
         documento_id: docInsertado.id,
         tipo: tipo,
         contenido: explicacion.contenido,
-        modelo_usado: explicacion.modelo_usado,
+        modelo_usado: LLM_MODEL,
         tokens_usados: explicacion.tokens_usados,
         tokens_input: explicacion.tokens_input,
         tokens_output: explicacion.tokens_output,
@@ -356,13 +355,10 @@ async function procesarDocumento(
       stats.total_explicaciones_generadas++;
       stats.total_tokens_usados += explicacion.tokens_usados;
 
-      // Calcular costo
-      const costo = estimateCost(
-        explicacion.tokens_input,
-        explicacion.tokens_output,
-        explicacion.modelo_usado
-      );
-      stats.total_costo_estimado += costo;
+      // Claude 3.5 Haiku: $1/1M input, $5/1M output
+      const costoInput = (explicacion.tokens_input / 1_000_000) * 1;
+      const costoOutput = (explicacion.tokens_output / 1_000_000) * 5;
+      stats.total_costo_estimado += costoInput + costoOutput;
     } catch (error) {
       console.error(
         `Error generando explicación ${tipo} para ${doc.id}:`,
@@ -382,20 +378,40 @@ async function procesarDocumento(
 }
 
 /**
- * Genera una explicación usando LLM (OpenAI o Anthropic)
+ * Genera una explicación usando Claude AI
  */
 async function generarExplicacionLLM(
   doc: BOEDocumento,
   tipo: string,
   categoriaSlug: string
-) {
+): Promise<{
+  contenido: string;
+  tokens_usados: number;
+  tokens_input: number;
+  tokens_output: number;
+}> {
   const prompt = construirPrompt(doc, tipo, categoriaSlug);
 
-  const response = await generateText(prompt, {
+  const message = await anthropic.messages.create({
+    model: LLM_MODEL,
     max_tokens: LLM_MAX_TOKENS,
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
   });
 
-  return response;
+  const contenido =
+    message.content[0].type === "text" ? message.content[0].text : "";
+
+  return {
+    contenido,
+    tokens_usados: message.usage.input_tokens + message.usage.output_tokens,
+    tokens_input: message.usage.input_tokens,
+    tokens_output: message.usage.output_tokens,
+  };
 }
 
 /**
@@ -447,6 +463,8 @@ Máximo 3-4 frases, lenguaje sencillo.`;
  * Extrae datos estructurados básicos del documento
  */
 function extractDatosEstructurados(doc: BOEDocumento, categoriaSlug: string): any {
+  // Aquí iría lógica más sofisticada con regex para extraer datos específicos
+  // Por ahora retornamos estructura básica
   return {
     titulo_original: doc.titulo,
     seccion: doc.seccion,
@@ -463,6 +481,7 @@ function extractKeywords(titulo: string, categoriaSlug: string): string[] {
   const keywords: string[] = [];
   const tituloLower = titulo.toLowerCase();
 
+  // Agregar keywords de la categoría que aparezcan en el título
   const categoriasKeywords = KEYWORDS_BY_CATEGORY[categoriaSlug as CategoriaSlug];
   if (categoriasKeywords) {
     for (const keyword of categoriasKeywords) {
@@ -472,7 +491,7 @@ function extractKeywords(titulo: string, categoriaSlug: string): string[] {
     }
   }
 
-  return [...new Set(keywords)];
+  return [...new Set(keywords)]; // Remover duplicados
 }
 
 /**
@@ -517,13 +536,18 @@ Usa lenguaje claro y sencillo.
 `;
 
   try {
-    const response = await generateText(promptEstadisticas, {
+    const message = await anthropic.messages.create({
+      model: LLM_MODEL,
       max_tokens: 1024,
+      messages: [{ role: "user", content: promptEstadisticas }],
     });
 
-    // Parsear respuesta (simple)
-    const partes = response.contenido.split("\n\n");
-    const resumen = partes[0] || response.contenido;
+    const contenido =
+      message.content[0].type === "text" ? message.content[0].text : "";
+
+    // Parsear respuesta (simple, mejorar en el futuro)
+    const partes = contenido.split("\n\n");
+    const resumen = partes[0] || contenido;
     const tendencias = partes[1] || "";
     const insights = partes[2] || "";
 
@@ -537,18 +561,16 @@ Usa lenguaje claro y sencillo.
       tendencias: tendencias,
       insights: insights,
       documentos_destacados: documentos.slice(0, 5).map((d) => d.id),
-      modelo_usado: response.modelo_usado,
-      tokens_usados: response.tokens_usados,
+      modelo_usado: LLM_MODEL,
+      tokens_usados: message.usage.input_tokens + message.usage.output_tokens,
     });
 
-    stats.total_tokens_usados += response.tokens_usados;
+    stats.total_tokens_usados +=
+      message.usage.input_tokens + message.usage.output_tokens;
 
-    const costo = estimateCost(
-      response.tokens_input,
-      response.tokens_output,
-      response.modelo_usado
-    );
-    stats.total_costo_estimado += costo;
+    const costoInput = (message.usage.input_tokens / 1_000_000) * 1;
+    const costoOutput = (message.usage.output_tokens / 1_000_000) * 5;
+    stats.total_costo_estimado += costoInput + costoOutput;
   } catch (error) {
     console.error(
       `Error generando estadísticas para ${categoria.nombre}:`,
