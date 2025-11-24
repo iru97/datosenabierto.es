@@ -28,21 +28,24 @@
 
     <!-- Category Content -->
     <div v-else-if="categoria">
+      <!-- Breadcrumbs -->
+      <div class="bg-white border-b border-gray-200">
+        <div class="container mx-auto px-4 py-3">
+          <Breadcrumbs
+            :breadcrumbs="[
+              { label: 'Categorías', to: '/categorias' },
+              { label: categoria.nombre }
+            ]"
+          />
+        </div>
+      </div>
+
       <!-- Header -->
       <div
         class="text-white py-12"
         :style="{ backgroundColor: categoria.color }"
       >
         <div class="container mx-auto px-4">
-          <NuxtLink
-            to="/categorias"
-            class="inline-flex items-center text-white/80 hover:text-white mb-4 text-sm"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-            Volver a Categorías
-          </NuxtLink>
 
           <div class="flex items-center gap-4 mb-4">
             <span class="text-6xl">{{ categoria.icono }}</span>
