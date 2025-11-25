@@ -102,24 +102,32 @@ function clasificarDocumento(doc: any, categorias: any[]): any | null {
 
 async function fetchDocumentoCompleto(boe_id: string): Promise<{ contenido_texto: string } | null> {
   try {
+    console.log(`   🔍 Descargando XML de ${boe_id}...`)
     // URL correcta según server/api/boe/documento/[id].ts: /${id}.xml NO /documento/${id}
     const data = await fetchBoeApiDirect(`/${boe_id}.xml`, 'xml')
 
     if (!data) {
+      console.log(`   ⚠️  fetchBoeApiDirect retornó null (posible 404)`)
       return null
     }
+
+    console.log(`   ✓ XML descargado, tamaño: ${data.length} caracteres`)
 
     const textoMatch = data.match(/<texto[^>]*>([\s\S]*?)<\/texto>/i)
     const texto = textoMatch ? textoMatch[1].replace(/<[^>]+>/g, ' ').trim() : ''
     const contenido = texto || data.toString().substring(0, 5000)
 
+    console.log(`   ✓ Texto extraído: ${contenido.length} caracteres`)
+
     if (contenido.length < 50) {
+      console.log(`   ⚠️  Contenido muy corto: ${contenido.length} caracteres`)
       return null
     }
 
     return { contenido_texto: contenido }
   } catch (error: any) {
-    console.error(`❌ Error obteniendo documento ${boe_id}:`, error.message)
+    console.error(`   ❌ Error obteniendo documento ${boe_id}:`, error.message)
+    if (error.stack) console.error(`   Stack:`, error.stack.split('\n')[0])
     return null
   }
 }
