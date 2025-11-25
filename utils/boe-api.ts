@@ -169,9 +169,16 @@ export function extractAllDocuments(sumario: BOESumario): BOEDocumento[] {
 
   if (!sumario?.diario) return documentos;
 
-  for (const seccion of sumario.diario) {
-    if (seccion.items) {
-      documentos.push(...seccion.items);
+  for (const dia of sumario.diario) {
+    // La estructura real de la API del BOE es: diario[] -> seccion[] -> items[]
+    // Cada elemento del diario tiene "seccion" que es un array de secciones
+    const secciones = (dia as any).seccion || [];
+
+    for (const seccion of secciones) {
+      // Cada sección puede tener items directamente
+      if (seccion.items && Array.isArray(seccion.items)) {
+        documentos.push(...seccion.items);
+      }
     }
   }
 
@@ -317,24 +324,11 @@ export async function fetchWeekSumarios(
         const sumario = data?.data?.sumario || { diario: [] };
         const numSecciones = sumario.diario?.length || 0;
 
-        // Contar documentos totales
-        let totalDocs = 0;
-        if (sumario.diario) {
-          for (const seccion of sumario.diario) {
-            // Debug: ver estructura de la sección
-            if (numSecciones > 0 && totalDocs === 0) {
-              console.log(`   DEBUG - Keys de sección:`, Object.keys(seccion));
-              console.log(`   DEBUG - Tiene items?:`, !!seccion.items);
-              if (seccion.nombre) console.log(`   DEBUG - Nombre:`, seccion.nombre);
-            }
+        // Contar documentos totales usando extractAllDocuments
+        const docs = extractAllDocuments(sumario);
+        const totalDocs = docs.length;
 
-            if (seccion.items) {
-              totalDocs += seccion.items.length;
-            }
-          }
-        }
-
-        console.log(`✓ Sumario ${dateStr}: ${numSecciones} secciones, ${totalDocs} documentos`);
+        console.log(`✓ Sumario ${dateStr}: ${numSecciones} días, ${totalDocs} documentos`);
 
         return {
           fecha: format(date, "yyyy-MM-dd"),
