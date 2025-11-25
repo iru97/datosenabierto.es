@@ -169,37 +169,69 @@ export function extractAllDocuments(sumario: BOESumario): BOEDocumento[] {
 
   if (!sumario?.diario) return documentos;
 
+  // Estructura real según types/boe.ts:
+  // diario[] -> seccion[] -> departamento (objeto|array) -> epigrafe[] -> item (objeto|array)
   for (const dia of sumario.diario) {
     const diaAny = dia as any;
+    const secciones = diaAny.seccion || [];
 
-    // DEBUG: Ver qué hay dentro
-    console.log('\n   DEBUG - Explorando estructura del día:');
-    console.log('   - Keys:', Object.keys(diaAny));
+    for (const seccion of secciones) {
+      // departamento puede ser un objeto único o un array
+      const departamentos = Array.isArray(seccion.departamento)
+        ? seccion.departamento
+        : [seccion.departamento];
 
-    // Ver si seccion es array o objeto
-    if (diaAny.seccion) {
-      console.log('   - seccion es Array?:', Array.isArray(diaAny.seccion));
-      if (Array.isArray(diaAny.seccion)) {
-        console.log('   - seccion.length:', diaAny.seccion.length);
-        if (diaAny.seccion[0]) {
-          console.log('   - Keys de seccion[0]:', Object.keys(diaAny.seccion[0]));
+      for (const departamento of departamentos) {
+        if (!departamento) continue;
+
+        // Los epígrafes pueden estar en texto.epigrafe[] o epigrafe[]
+        const epigrafes = departamento.texto?.epigrafe || departamento.epigrafe || [];
+
+        for (const epigrafe of epigrafes) {
+          // item puede ser un objeto único o un array
+          const items = Array.isArray(epigrafe.item)
+            ? epigrafe.item
+            : [epigrafe.item];
+
+          for (const item of items) {
+            if (item && item.identificador) {
+              documentos.push({
+                id: item.identificador,
+                titulo: item.titulo,
+                seccion: seccion.nombre || '',
+                departamento: departamento.nombre || '',
+                fecha_publicacion: '',
+                urlPdf: item.url_pdf?.texto || '',
+                urlHtml: item.url_html || '',
+                urlXml: item.url_xml || '',
+              });
+            }
+          }
         }
-      } else {
-        console.log('   - Keys de seccion (objeto):', Object.keys(diaAny.seccion));
+
+        // También puede haber items directamente en departamento
+        if (departamento.item) {
+          const items = Array.isArray(departamento.item)
+            ? departamento.item
+            : [departamento.item];
+
+          for (const item of items) {
+            if (item && item.identificador) {
+              documentos.push({
+                id: item.identificador,
+                titulo: item.titulo,
+                seccion: seccion.nombre || '',
+                departamento: departamento.nombre || '',
+                fecha_publicacion: '',
+                urlPdf: item.url_pdf?.texto || '',
+                urlHtml: item.url_html || '',
+                urlXml: item.url_xml || '',
+              });
+            }
+          }
+        }
       }
     }
-
-    // Ver si sumario_diario tiene algo
-    if (diaAny.sumario_diario) {
-      console.log('   - sumario_diario es Array?:', Array.isArray(diaAny.sumario_diario));
-      if (Array.isArray(diaAny.sumario_diario)) {
-        console.log('   - sumario_diario.length:', diaAny.sumario_diario.length);
-      } else {
-        console.log('   - Keys de sumario_diario:', Object.keys(diaAny.sumario_diario));
-      }
-    }
-
-    // TODO: Cuando sepamos la estructura real, extraer documentos aquí
   }
 
   return documentos;
