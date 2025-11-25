@@ -279,7 +279,7 @@ async function main() {
 
       const { data: docGuardado, error: errorDoc } = await supabase
         .from('documentos_boe')
-        .insert({
+        .upsert({
           boe_id: doc.boe_id,
           categoria_id: doc.categoria_id,
           fecha_publicacion: doc.fecha_publicacion,
@@ -293,6 +293,8 @@ async function main() {
           keywords: resultado.fase1.keywords,
           procesado: true,
           procesado_at: new Date().toISOString(),
+        }, {
+          onConflict: 'boe_id'
         })
         .select()
         .single()
@@ -346,6 +348,12 @@ async function main() {
           tokens_usados: Math.floor(resultado.metadata.tokens_usados * 0.1),
         })
       }
+
+      // Borrar explicaciones anteriores si existen (para poder reprocesar)
+      await supabase
+        .from('explicaciones_llm')
+        .delete()
+        .eq('documento_id', docGuardado.id)
 
       const { error: errorExplicaciones } = await supabase
         .from('explicaciones_llm')
