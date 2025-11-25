@@ -238,10 +238,12 @@ export async function fetchBoeApiDirect(
   endpoint: string,
   format: "json" | "xml" = "json"
 ): Promise<any> {
-  const baseUrl = "https://www.boe.es/datosabiertos/api/boe";
+  // IMPORTANTE: La URL correcta es SIN www (como en server/api/boe/range.ts)
+  const baseUrl = "https://boe.es/datosabiertos/api/boe";
   const url = endpoint.startsWith("http") ? endpoint : `${baseUrl}${endpoint}`;
 
   const response = await fetch(url, {
+    method: "GET",
     headers: {
       Accept: format === "xml" ? "application/xml" : "application/json",
       "User-Agent": "datosenabierto.es/1.0",
@@ -249,6 +251,10 @@ export async function fetchBoeApiDirect(
   });
 
   if (!response.ok) {
+    // 404 significa que no hay boletín ese día (normal)
+    if (response.status === 404) {
+      return null;
+    }
     throw new Error(`BOE API error: ${response.status} ${response.statusText}`);
   }
 
@@ -282,8 +288,18 @@ export async function fetchWeekSumarios(
       try {
         const data = await fetchBoeApiDirect(`/sumario/${dateStr}`, "json");
 
-        // La API retorna directamente { sumario: {...} }, no { data: { sumario: {...} } }
-        const sumario = data.sumario || { diario: [] };
+        // Si es null (404), no hay boletín ese día
+        if (!data) {
+          return {
+            fecha: format(date, "yyyy-MM-dd"),
+            fecha_boe: dateStr,
+            disponible: false,
+            sumario: { diario: [] },
+          };
+        }
+
+        // La API retorna { data: { sumario: {...} } }
+        const sumario = data?.data?.sumario || { diario: [] };
         const numItems = sumario.diario?.length || 0;
 
         console.log(`✓ Sumario ${dateStr}: ${numItems} secciones encontradas`);
