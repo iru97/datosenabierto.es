@@ -170,16 +170,36 @@ export function extractAllDocuments(sumario: BOESumario): BOEDocumento[] {
   if (!sumario?.diario) return documentos;
 
   for (const dia of sumario.diario) {
-    // La estructura real de la API del BOE es: diario[] -> seccion[] -> items[]
-    // Cada elemento del diario tiene "seccion" que es un array de secciones
-    const secciones = (dia as any).seccion || [];
+    const diaAny = dia as any;
 
-    for (const seccion of secciones) {
-      // Cada sección puede tener items directamente
-      if (seccion.items && Array.isArray(seccion.items)) {
-        documentos.push(...seccion.items);
+    // DEBUG: Ver qué hay dentro
+    console.log('\n   DEBUG - Explorando estructura del día:');
+    console.log('   - Keys:', Object.keys(diaAny));
+
+    // Ver si seccion es array o objeto
+    if (diaAny.seccion) {
+      console.log('   - seccion es Array?:', Array.isArray(diaAny.seccion));
+      if (Array.isArray(diaAny.seccion)) {
+        console.log('   - seccion.length:', diaAny.seccion.length);
+        if (diaAny.seccion[0]) {
+          console.log('   - Keys de seccion[0]:', Object.keys(diaAny.seccion[0]));
+        }
+      } else {
+        console.log('   - Keys de seccion (objeto):', Object.keys(diaAny.seccion));
       }
     }
+
+    // Ver si sumario_diario tiene algo
+    if (diaAny.sumario_diario) {
+      console.log('   - sumario_diario es Array?:', Array.isArray(diaAny.sumario_diario));
+      if (Array.isArray(diaAny.sumario_diario)) {
+        console.log('   - sumario_diario.length:', diaAny.sumario_diario.length);
+      } else {
+        console.log('   - Keys de sumario_diario:', Object.keys(diaAny.sumario_diario));
+      }
+    }
+
+    // TODO: Cuando sepamos la estructura real, extraer documentos aquí
   }
 
   return documentos;
