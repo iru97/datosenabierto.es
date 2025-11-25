@@ -27,6 +27,14 @@ import {
   pauseCheckpoint,
   completeCheckpoint,
 } from '../../utils/checkpoint-manager'
+import {
+  fetchWeekSumarios,
+  extractAllDocuments,
+  fetchBoeApiDirect,
+  filterByKeywords,
+  KEYWORDS_BY_CATEGORY,
+  type CategoriaSlug,
+} from '../../utils/boe-api'
 
 // ============================================================================
 // SETUP
@@ -138,8 +146,13 @@ export const handler = schedule('0 7 * * 0', async (event, context) => {
           prioridad: getPrioridad(categoria.slug),
           costo_estimado: 0.005, // ~$0.005 por documento
           metadata: {
+            boe_id: doc.boe_id,
             fecha_publicacion: doc.fecha_publicacion,
-            titulo: doc.titulo.substring(0, 200),
+            titulo: doc.titulo,
+            seccion: doc.seccion,
+            departamento: doc.departamento,
+            rango: doc.rango,
+            url_pdf: doc.url_pdf,
           },
         })
 
@@ -187,13 +200,25 @@ export const handler = schedule('0 7 * * 0', async (event, context) => {
       // Procesar cada documento del lote
       for (const item of lote) {
         try {
-          // Obtener datos completos del documento
-          const docCompleto = await fetchDocumentoCompleto(item.metadata.boe_id)
+          // Obtener contenido completo del documento desde BOE API
+          const docContenido = await fetchDocumentoCompleto(item.metadata.boe_id)
 
-          if (!docCompleto) {
+          if (!docContenido) {
             console.warn(`⚠️  No se pudo obtener documento ${item.metadata.boe_id}`)
             await removeFromQueue(item.id)
             continue
+          }
+
+          // Combinar metadata que ya teníamos con el contenido descargado
+          const docCompleto: DocumentoBOE = {
+            boe_id: item.metadata.boe_id,
+            titulo: item.metadata.titulo,
+            fecha_publicacion: item.metadata.fecha_publicacion,
+            seccion: item.metadata.seccion,
+            departamento: item.metadata.departamento,
+            rango: item.metadata.rango,
+            url_pdf: item.metadata.url_pdf,
+            contenido_texto: docContenido.contenido_texto,
           }
 
           // Obtener categoría
@@ -452,56 +477,146 @@ function getPrioridad(categoria_slug: string): number {
 }
 
 async function fetchDocumentosSemana(desde: string, hasta: string): Promise<any[]> {
-  // TODO: Implementar llamada real a API del BOE
-  // Por ahora retornar array vacío
-  // En producción, iterar día por día y obtener todos los documentos
+  console.log(`📥 Descargando documentos del BOE desde ${desde} hasta ${hasta}`)
 
-  const documentos: any[] = []
-
-  // Ejemplo: iterar cada día
   const inicio = new Date(desde)
   const fin = new Date(hasta)
 
-  for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
-    const fecha = d.toISOString().split('T')[0].replace(/-/g, '')
+  // Usar utilidad existente para descargar sumarios de toda la semana
+  const resultados = await fetchWeekSumarios(inicio, fin)
 
-    // Llamar a API BOE
-    // const url = `${BOE_API_BASE}?fecha=${fecha}`
-    // const response = await fetch(url)
-    // const data = await response.json()
-    // documentos.push(...data.sumario.diario.seccion)
+  const documentos: any[] = []
+
+  for (const resultado of resultados) {
+    if (resultado.disponible && resultado.sumario) {
+      // Extraer todos los documentos del sumario del día
+      const docsDelDia = extractAllDocuments(resultado.sumario)
+
+      // Añadir metadata adicional
+      documentos.push(...docsDelDia.map(doc => ({
+        boe_id: doc.id,
+        titulo: doc.titulo || 'Sin título',
+        fecha_publicacion: resultado.fecha,
+        seccion: doc.seccion || '',
+        departamento: doc.departamento || '',
+        rango: doc.rango || '',
+        url_pdf: doc.urlPdf || `https://www.boe.es/boe/dias/${resultado.fecha_boe.replace(/-/g, '/')}/pdfs/${doc.id}.pdf`,
+        epigrafe: doc.epigrafe || '',
+      })))
+    }
   }
+
+  console.log(`✅ Total documentos descargados: ${documentos.length}`)
 
   return documentos
 }
 
 async function fetchDocumentoCompleto(boe_id: string): Promise<DocumentoBOE | null> {
-  // TODO: Implementar llamada a API BOE para obtener documento completo
-  // Retornar null por ahora
+  try {
+    // Obtener XML del documento completo desde la API del BOE
+    // Formato de ID: BOE-A-2024-12345
+    const data = await fetchBoeApiDirect(`/documento/${boe_id}`, 'xml')
 
-  return null
+    if (!data) {
+      console.warn(`⚠️  No se pudo obtener XML para ${boe_id}`)
+      return null
+    }
+
+    // Extraer texto del XML (básico - se puede mejorar con parser XML)
+    const textoMatch = data.match(/<texto[^>]*>([\s\S]*?)<\/texto>/i)
+    const texto = textoMatch ? textoMatch[1].replace(/<[^>]+>/g, ' ').trim() : ''
+
+    // Si no hay texto suficiente, intentar con otros campos
+    const contenido = texto || data.toString().substring(0, 5000)
+
+    if (contenido.length < 50) {
+      console.warn(`⚠️  Contenido muy corto para ${boe_id}`)
+      return null
+    }
+
+    // Obtener metadata desde el ID (asumiendo que ya tenemos info básica)
+    // En un caso real, también podríamos parsear el XML para extraer metadata
+
+    return {
+      boe_id,
+      titulo: '', // Se completará con la info que ya teníamos
+      fecha_publicacion: '',
+      seccion: '',
+      departamento: '',
+      rango: '',
+      url_pdf: `https://www.boe.es/boe/dias/${boe_id.split('-')[2]}/${boe_id.split('-')[3]}/${boe_id}.pdf`,
+      contenido_texto: contenido,
+    }
+  } catch (error: any) {
+    console.error(`❌ Error obteniendo documento ${boe_id}:`, error.message)
+    return null
+  }
 }
 
 function clasificarDocumento(doc: any, categorias: any[]): any | null {
   const titulo = doc.titulo?.toLowerCase() || ''
-  const texto = doc.texto?.toLowerCase() || ''
+  const departamento = doc.departamento?.toLowerCase() || ''
+  const seccion = doc.seccion?.toLowerCase() || ''
+  const epigrafe = doc.epigrafe?.toLowerCase() || ''
 
-  // Clasificación por keywords y sección
-  if (titulo.includes('oposición') || titulo.includes('convocatoria')) {
-    return categorias.find(c => c.slug === 'oposiciones')
+  // Combinar todos los textos para buscar keywords
+  const textoCompleto = `${titulo} ${departamento} ${seccion} ${epigrafe}`.toLowerCase()
+
+  // Puntuación por categoría (permite clasificación en múltiples categorías)
+  const scores: Record<string, number> = {}
+
+  // Intentar clasificar con las keywords definidas
+  const categoriasSlug = Object.keys(KEYWORDS_BY_CATEGORY) as CategoriaSlug[]
+
+  for (const slug of categoriasSlug) {
+    const keywords = KEYWORDS_BY_CATEGORY[slug]
+    let score = 0
+
+    // Contar coincidencias de keywords
+    for (const keyword of keywords) {
+      if (textoCompleto.includes(keyword.toLowerCase())) {
+        score++
+      }
+    }
+
+    if (score > 0) {
+      scores[slug] = score
+    }
   }
 
-  if (titulo.includes('subvención') || titulo.includes('ayuda') || titulo.includes('beca')) {
-    return categorias.find(c => c.slug === 'ayudas')
+  // Si no hay coincidencias, intentar clasificación por sección
+  if (Object.keys(scores).length === 0) {
+    // Sección I: Disposiciones generales -> legislacion
+    if (seccion.includes('disposiciones generales')) {
+      scores['legislacion'] = 1
+    }
+    // Sección II: Autoridades y personal -> oposiciones
+    else if (seccion.includes('autoridades') || seccion.includes('personal')) {
+      scores['oposiciones'] = 1
+    }
+    // Sección III: Otras disposiciones -> otros
+    else if (seccion.includes('otras disposiciones')) {
+      scores['otros'] = 1
+    }
   }
 
-  if (titulo.includes('ley') || titulo.includes('real decreto')) {
-    return categorias.find(c => c.slug === 'legislacion')
+  // Obtener categoría con mayor score
+  if (Object.keys(scores).length === 0) {
+    return null // No se pudo clasificar
   }
 
-  // Más lógica de clasificación...
+  const mejorSlug = Object.keys(scores).reduce((a, b) =>
+    scores[a] > scores[b] ? a : b
+  )
 
-  return null
+  // Buscar la categoría en la lista de categorías disponibles
+  const categoria = categorias.find(c => c.slug === mejorSlug)
+
+  if (categoria) {
+    console.log(`🏷️  Clasificado "${doc.titulo.substring(0, 50)}..." como ${categoria.slug} (score: ${scores[mejorSlug]})`)
+  }
+
+  return categoria || null
 }
 
 async function generarEstadisticasCategoria(
