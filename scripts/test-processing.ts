@@ -100,11 +100,25 @@ function clasificarDocumento(doc: any, categorias: any[]): any | null {
   return categorias.find(c => c.slug === mejorSlug) || null
 }
 
-async function fetchDocumentoCompleto(boe_id: string): Promise<{ contenido_texto: string } | null> {
+async function fetchDocumentoCompleto(boe_id: string, url_xml?: string): Promise<{ contenido_texto: string } | null> {
   try {
     console.log(`   🔍 Descargando XML de ${boe_id}...`)
-    // URL correcta según server/api/boe/documento/[id].ts: /${id}.xml NO /documento/${id}
-    const data = await fetchBoeApiDirect(`/${boe_id}.xml`, 'xml')
+
+    // Si tenemos url_xml del sumario, usarlo directamente (es la URL completa)
+    let data;
+    if (url_xml) {
+      console.log(`   📍 Usando URL del sumario: ${url_xml}`)
+      const response = await fetch(url_xml)
+      if (!response.ok) {
+        console.log(`   ⚠️  Error HTTP ${response.status}: ${response.statusText}`)
+        return null
+      }
+      data = await response.text()
+    } else {
+      // Fallback: construir URL con API
+      console.log(`   📍 Construyendo URL con API: /${boe_id}.xml`)
+      data = await fetchBoeApiDirect(`/${boe_id}.xml`, 'xml')
+    }
 
     if (!data) {
       console.log(`   ⚠️  fetchBoeApiDirect retornó null (posible 404)`)
@@ -173,6 +187,7 @@ async function main() {
         departamento: doc.departamento || '',
         rango: doc.rango || '',
         url_pdf: doc.urlPdf || '',
+        url_xml: doc.urlXml || '',
         epigrafe: doc.epigrafe || '',
       })))
     }
@@ -254,8 +269,8 @@ async function main() {
     console.log(`   Categoría: ${doc.categoria_nombre}`)
 
     try {
-      // Obtener contenido completo
-      const contenido = await fetchDocumentoCompleto(doc.boe_id)
+      // Obtener contenido completo usando url_xml del sumario
+      const contenido = await fetchDocumentoCompleto(doc.boe_id, doc.url_xml)
 
       if (!contenido) {
         console.log('   ⚠️  No se pudo descargar el contenido completo')
