@@ -6,6 +6,7 @@
  */
 
 import { format, eachDayOfInterval, parseISO } from "date-fns";
+import { ProxyAgent } from "undici";
 
 // ================================================================
 // TIPOS
@@ -233,6 +234,8 @@ export function filterByDepartamento(
 /**
  * Fetch directo a la API del BOE (para usar en Netlify Functions)
  * NO usar desde el cliente, usar /api/boe/* endpoints
+ *
+ * Soporta proxy automáticamente si hay variables de entorno configuradas
  */
 export async function fetchBoeApiDirect(
   endpoint: string,
@@ -242,13 +245,25 @@ export async function fetchBoeApiDirect(
   const baseUrl = "https://boe.es/datosabiertos/api/boe";
   const url = endpoint.startsWith("http") ? endpoint : `${baseUrl}${endpoint}`;
 
-  const response = await fetch(url, {
+  // Configurar proxy si está disponible (para entornos con restricciones de red)
+  const fetchOptions: any = {
     method: "GET",
     headers: {
       Accept: format === "xml" ? "application/xml" : "application/json",
       "User-Agent": "datosenabierto.es/1.0",
     },
-  });
+  };
+
+  // Si hay proxy configurado, usar ProxyAgent de undici
+  const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY ||
+                   process.env.http_proxy || process.env.HTTP_PROXY;
+
+  if (proxyUrl) {
+    const agent = new ProxyAgent(proxyUrl);
+    fetchOptions.dispatcher = agent;
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     // 404 significa que no hay boletín ese día (normal)
