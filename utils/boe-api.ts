@@ -238,7 +238,7 @@ export async function fetchBoeApiDirect(
   endpoint: string,
   format: "json" | "xml" = "json"
 ): Promise<any> {
-  const baseUrl = "https://boe.es/datosabiertos/api/boe";
+  const baseUrl = "https://www.boe.es/datosabiertos/api/boe";
   const url = endpoint.startsWith("http") ? endpoint : `${baseUrl}${endpoint}`;
 
   const response = await fetch(url, {

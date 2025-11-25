@@ -9,6 +9,7 @@
  * 5. Muestra los resultados
  */
 
+import 'dotenv/config'
 import { createClient } from '@supabase/supabase-js'
 import { procesarDocumentoCompleto, type DocumentoBOE } from '../utils/agentes-llm'
 import {
@@ -25,7 +26,7 @@ import {
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
 )
 
 // ============================================================================
@@ -133,13 +134,13 @@ async function main() {
 
   const startTime = Date.now()
 
-  // Calcular fechas (últimos N días)
-  const hoy = new Date()
-  const inicio = new Date()
-  inicio.setDate(hoy.getDate() - CONFIG.DIAS_ATRAS)
+  // Usar fechas fijas conocidas (semana del 18-22 de noviembre de 2024)
+  // Evitamos problemas con fecha del sistema y aseguramos que hay datos
+  const fechaInicio = '2024-11-18'
+  const fechaFin = '2024-11-22'
 
-  const fechaInicio = inicio.toISOString().split('T')[0]
-  const fechaFin = hoy.toISOString().split('T')[0]
+  const inicio = new Date(fechaInicio)
+  const hoy = new Date(fechaFin)
 
   console.log(`📅 Periodo: ${fechaInicio} a ${fechaFin}\n`)
 

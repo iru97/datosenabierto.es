@@ -42,7 +42,7 @@ import {
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY! // Service key para permisos totales
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY! // Service key para permisos totales
 )
 
 const BOE_API_BASE = 'https://www.boe.es/diario_boe/json.php'
