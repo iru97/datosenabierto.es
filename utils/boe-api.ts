@@ -282,11 +282,17 @@ export async function fetchWeekSumarios(
       try {
         const data = await fetchBoeApiDirect(`/sumario/${dateStr}`, "json");
 
+        // La API retorna directamente { sumario: {...} }, no { data: { sumario: {...} } }
+        const sumario = data.sumario || { diario: [] };
+        const numItems = sumario.diario?.length || 0;
+
+        console.log(`✓ Sumario ${dateStr}: ${numItems} secciones encontradas`);
+
         return {
           fecha: format(date, "yyyy-MM-dd"),
           fecha_boe: dateStr,
           disponible: true,
-          sumario: data.data?.sumario || { diario: [] },
+          sumario: sumario,
         };
       } catch (error) {
         console.error(`Error fetching sumario for ${dateStr}:`, error);
