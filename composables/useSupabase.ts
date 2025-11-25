@@ -322,7 +322,7 @@ export async function getDocumentosByDateRange(
 export async function getDocumentosDestacados(limit: number = 8) {
   const { supabase } = useSupabase()
 
-  // Obtener últimos 7 días
+  // Obtener últimos 7 días, ordenados por fecha (más recientes primero)
   const hoy = new Date()
   const hace7Dias = new Date()
   hace7Dias.setDate(hoy.getDate() - 7)
@@ -335,7 +335,6 @@ export async function getDocumentosDestacados(limit: number = 8) {
       explicaciones:explicaciones_llm(*)
     `)
     .eq('procesado', true)
-    .eq('importante', true)
     .gte('fecha_publicacion', hace7Dias.toISOString().split('T')[0])
     .order('fecha_publicacion', { ascending: false })
     .limit(limit)
@@ -429,13 +428,11 @@ export async function getEstadisticasHome() {
     .eq('procesado', true)
     .gte('fecha_publicacion', fechaDesde)
 
-  // Documentos importantes
-  const { count: totalImportantes, error: errorImportantes } = await supabase
-    .from('documentos_boe')
-    .select('*', { count: 'exact', head: true })
-    .eq('procesado', true)
-    .eq('importante', true)
-    .gte('fecha_publicacion', fechaDesde)
+  // Documentos con explicaciones LLM (considerados "destacados")
+  const { count: totalConExplicaciones, error: errorExplicaciones } = await supabase
+    .from('explicaciones_llm')
+    .select('documento_id', { count: 'exact', head: true })
+    .gte('created_at', fechaDesde)
 
   // Categorías activas
   const { count: totalCategorias, error: errorCategorias } = await supabase
@@ -443,13 +440,13 @@ export async function getEstadisticasHome() {
     .select('*', { count: 'exact', head: true })
     .eq('activa', true)
 
-  if (errorTotal || errorImportantes || errorCategorias) {
-    console.error('Error fetching stats home:', { errorTotal, errorImportantes, errorCategorias })
+  if (errorTotal || errorExplicaciones || errorCategorias) {
+    console.error('Error fetching stats home:', { errorTotal, errorExplicaciones, errorCategorias })
   }
 
   return {
     documentosSemana: totalSemana || 0,
-    documentosImportantes: totalImportantes || 0,
+    documentosImportantes: totalConExplicaciones || 0,
     categoriasActivas: totalCategorias || 0,
   }
 }

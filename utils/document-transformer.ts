@@ -48,7 +48,6 @@ export interface DocumentoTransformado {
   url_xml?: string
   keywords?: string[]
   procesado: boolean
-  importante?: boolean
 
   // Campos transformados de explicaciones LLM
   explicacion?: string  // De tipo 'que_es'
@@ -125,7 +124,6 @@ export function transformarDocumento(doc: any): DocumentoTransformado {
     url_xml: doc.url_xml,
     keywords: doc.keywords,
     procesado: doc.procesado,
-    importante: doc.importante,
 
     // Campos transformados
     explicacion: explicacionQueEs?.contenido,
@@ -185,11 +183,9 @@ function calcularDiasRestantes(fecha: string): number {
 export function filtrarDestacados(docs: DocumentoTransformado[]): DocumentoTransformado[] {
   return docs.filter(doc => {
     // Marcar como destacado si:
-    // - Tiene flag importante
     // - Tiene fecha urgente (< 15 días)
     // - Es muy reciente (< 3 días)
-
-    if (doc.importante) return true
+    // - Tiene explicaciones LLM procesadas
 
     if (doc.fechaImportante?.diasRestantes && doc.fechaImportante.diasRestantes < 15) {
       return true
@@ -197,6 +193,9 @@ export function filtrarDestacados(docs: DocumentoTransformado[]): DocumentoTrans
 
     const diasDesdePublicacion = calcularDiasDesdePublicacion(doc.fecha_publicacion)
     if (diasDesdePublicacion <= 3) return true
+
+    // Si tiene explicaciones, considerarlo destacado
+    if (doc.explicaciones && doc.explicaciones.length > 0) return true
 
     return false
   })
@@ -237,7 +236,7 @@ export function agruparPorFecha(docs: DocumentoTransformado[]): Record<string, D
 
 /**
  * Ordena documentos por relevancia
- * (urgentes > importantes > recientes > resto)
+ * (urgentes > con explicaciones > recientes > resto)
  */
 export function ordenarPorRelevancia(docs: DocumentoTransformado[]): DocumentoTransformado[] {
   return [...docs].sort((a, b) => {
@@ -249,9 +248,11 @@ export function ordenarPorRelevancia(docs: DocumentoTransformado[]): DocumentoTr
     if (diasB < 15 && diasA >= 15) return 1
     if (diasA < 15 && diasB < 15) return diasA - diasB
 
-    // Luego importantes
-    if (a.importante && !b.importante) return -1
-    if (b.importante && !a.importante) return 1
+    // Luego los que tienen explicaciones LLM
+    const tieneExplicacionesA = (a.explicaciones?.length || 0) > 0
+    const tieneExplicacionesB = (b.explicaciones?.length || 0) > 0
+    if (tieneExplicacionesA && !tieneExplicacionesB) return -1
+    if (tieneExplicacionesB && !tieneExplicacionesA) return 1
 
     // Luego por fecha de publicación (más reciente primero)
     return new Date(b.fecha_publicacion).getTime() - new Date(a.fecha_publicacion).getTime()
