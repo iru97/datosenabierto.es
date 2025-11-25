@@ -19,6 +19,7 @@ import {
   KEYWORDS_BY_CATEGORY,
   type CategoriaSlug,
 } from '../utils/boe-api'
+import { ProxyAgent } from 'undici'
 
 // ============================================================================
 // SETUP
@@ -108,7 +109,24 @@ async function fetchDocumentoCompleto(boe_id: string, url_xml?: string): Promise
     let data;
     if (url_xml) {
       console.log(`   📍 Usando URL del sumario: ${url_xml}`)
-      const response = await fetch(url_xml)
+
+      // Configurar proxy si está disponible
+      const fetchOptions: any = {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'datosenabierto.es/1.0',
+        },
+      }
+
+      const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY ||
+                       process.env.http_proxy || process.env.HTTP_PROXY
+
+      if (proxyUrl) {
+        const agent = new ProxyAgent(proxyUrl)
+        fetchOptions.dispatcher = agent
+      }
+
+      const response = await fetch(url_xml, fetchOptions)
       if (!response.ok) {
         console.log(`   ⚠️  Error HTTP ${response.status}: ${response.statusText}`)
         return null
