@@ -315,9 +315,26 @@ export async function fetchWeekSumarios(
 
         // La API retorna { data: { sumario: {...} } }
         const sumario = data?.data?.sumario || { diario: [] };
-        const numItems = sumario.diario?.length || 0;
+        const numSecciones = sumario.diario?.length || 0;
 
-        console.log(`✓ Sumario ${dateStr}: ${numItems} secciones encontradas`);
+        // Contar documentos totales
+        let totalDocs = 0;
+        if (sumario.diario) {
+          for (const seccion of sumario.diario) {
+            // Debug: ver estructura de la sección
+            if (numSecciones > 0 && totalDocs === 0) {
+              console.log(`   DEBUG - Keys de sección:`, Object.keys(seccion));
+              console.log(`   DEBUG - Tiene items?:`, !!seccion.items);
+              if (seccion.nombre) console.log(`   DEBUG - Nombre:`, seccion.nombre);
+            }
+
+            if (seccion.items) {
+              totalDocs += seccion.items.length;
+            }
+          }
+        }
+
+        console.log(`✓ Sumario ${dateStr}: ${numSecciones} secciones, ${totalDocs} documentos`);
 
         return {
           fecha: format(date, "yyyy-MM-dd"),
