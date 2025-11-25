@@ -42,6 +42,26 @@
       </div>
     </div>
 
+    <!-- Estadísticas de la semana -->
+    <div v-if="stats" class="container mx-auto px-4 -mt-8 relative z-10">
+      <div class="bg-white rounded-xl shadow-xl p-6 border border-gray-200">
+        <div class="grid grid-cols-3 gap-6">
+          <div class="text-center">
+            <div class="text-3xl md:text-4xl font-bold text-blue-600">{{ stats.documentosSemana }}</div>
+            <div class="text-sm text-gray-600 mt-1">Documentos esta semana</div>
+          </div>
+          <div class="text-center border-l border-r border-gray-200">
+            <div class="text-3xl md:text-4xl font-bold text-amber-600">{{ stats.documentosImportantes }}</div>
+            <div class="text-sm text-gray-600 mt-1">Destacados</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl md:text-4xl font-bold text-green-600">{{ stats.categoriasActivas }}</div>
+            <div class="text-sm text-gray-600 mt-1">Categorías activas</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ¿Qué hacemos? -->
     <div class="container mx-auto px-4 py-16">
       <div class="text-center mb-12">
@@ -86,15 +106,115 @@
       </div>
     </div>
 
+    <!-- Esta Semana en el BOE -->
+    <div v-if="destacados.length > 0" class="bg-gradient-to-r from-amber-50 to-orange-50 py-16">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-3">
+            <span>📰</span>
+            <span>Esta Semana en el BOE</span>
+          </h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            Los documentos más importantes publicados recientemente
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+          <DocumentoCardEducativo
+            v-for="doc in destacados.slice(0, 6)"
+            :key="doc.id"
+            :titulo="doc.titulo"
+            :tipo-documento="doc.tipoDocumento"
+            :explicacion="doc.explicacion"
+            :como-afecta="doc.comoAfecta"
+            :fecha-importante="doc.fechaImportante"
+            :organismo="doc.organismo"
+            :keywords="doc.keywords"
+            :url-pdf="doc.url_pdf"
+            :fecha-publicacion="doc.fecha_publicacion"
+            @ver-detalle="abrirDetalle(doc)"
+          />
+        </div>
+
+        <div class="text-center">
+          <NuxtLink
+            to="/categorias"
+            class="inline-flex items-center px-6 py-3 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+          >
+            Ver todos los documentos
+            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categorías más activas -->
+    <div v-if="topCategorias.length > 0" class="container mx-auto px-4 py-16">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+          🔥 Categorías más activas esta semana
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Donde hay más novedades y actualizaciones
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <NuxtLink
+          v-for="estadistica in topCategorias"
+          :key="estadistica.categoria.id"
+          :to="`/categorias/${estadistica.categoria.slug}`"
+          class="bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-400 group"
+        >
+          <div class="flex items-center gap-4 mb-4">
+            <span class="text-4xl">{{ estadistica.categoria.icono }}</span>
+            <div class="flex-1">
+              <h3 class="font-bold text-gray-800 group-hover:text-blue-600">
+                {{ estadistica.categoria.nombre }}
+              </h3>
+              <p class="text-xs text-gray-500">{{ estadistica.categoria.descripcion }}</p>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-4 border-t border-gray-200">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-600">Documentos</span>
+              <span class="font-bold text-blue-600">{{ estadistica.total_documentos }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-600">Destacados</span>
+              <span class="font-bold text-amber-600">{{ estadistica.documentos_importantes }}</span>
+            </div>
+          </div>
+
+          <!-- Resumen semanal si existe -->
+          <div v-if="estadistica.resumen_semanal" class="mt-4 pt-4 border-t border-gray-200">
+            <p class="text-xs text-gray-600 line-clamp-3">
+              {{ estadistica.resumen_semanal }}
+            </p>
+          </div>
+
+          <div class="mt-4 text-blue-600 group-hover:text-blue-700 text-sm font-semibold flex items-center">
+            Ver detalles
+            <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </NuxtLink>
+      </div>
+    </div>
+
     <!-- Explora por Categoría -->
     <div class="bg-blue-50 py-16">
       <div class="container mx-auto px-4">
         <div class="text-center mb-12">
           <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            🗂️ Explora por Categoría
+            🗂️ Todas las Categorías
           </h2>
           <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-            Te explicamos qué tipo de información encontrarás en cada sección
+            Explora qué tipo de información encontrarás en cada sección
           </p>
         </div>
 
@@ -148,6 +268,36 @@
             </svg>
           </NuxtLink>
         </div>
+      </div>
+    </div>
+
+    <!-- Lo más reciente -->
+    <div v-if="recientes.length > 0" class="container mx-auto px-4 py-16">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-3">
+          <span>✨</span>
+          <span>Lo Más Reciente</span>
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Últimas publicaciones de todas las categorías
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <DocumentoCardEducativo
+          v-for="doc in recientes.slice(0, 6)"
+          :key="doc.id"
+          :titulo="doc.titulo"
+          :tipo-documento="doc.tipoDocumento"
+          :explicacion="doc.explicacion"
+          :como-afecta="doc.comoAfecta"
+          :fecha-importante="doc.fechaImportante"
+          :organismo="doc.organismo"
+          :keywords="doc.keywords"
+          :url-pdf="doc.url_pdf"
+          :fecha-publicacion="doc.fecha_publicacion"
+          @ver-detalle="abrirDetalle(doc)"
+        />
       </div>
     </div>
 
@@ -254,10 +404,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal de detalle del documento -->
+    <DocumentoDetalle
+      v-if="modalAbierto && documentoSeleccionado"
+      :documento="documentoSeleccionado"
+      @cerrar="cerrarDetalle"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import {
+  getDocumentosDestacados,
+  getDocumentosRecentesConExplicaciones,
+  getEstadisticasHome,
+  getTopCategoriasActivas,
+} from '~/composables/useSupabase'
+import { transformarDocumentos, type DocumentoTransformado } from '~/utils/document-transformer'
+import DocumentoCardEducativo from '~/components/DocumentoCardEducativo.vue'
+import DocumentoDetalle from '~/components/DocumentoDetalle.vue'
+
+// State
+const stats = ref<any>(null)
+const destacados = ref<DocumentoTransformado[]>([])
+const recientes = ref<DocumentoTransformado[]>([])
+const topCategorias = ref<any[]>([])
+
+const modalAbierto = ref(false)
+const documentoSeleccionado = ref<any>(null)
+
+// Cargar datos
+onMounted(async () => {
+  try {
+    // Cargar en paralelo todas las consultas
+    const [statsData, destacadosData, recientesData, topCategoriasData] = await Promise.all([
+      getEstadisticasHome(),
+      getDocumentosDestacados(8),
+      getDocumentosRecentesConExplicaciones(12, 3), // Últimos 3 días, hasta 12 docs
+      getTopCategoriasActivas(4),
+    ])
+
+    stats.value = statsData
+    destacados.value = transformarDocumentos(destacadosData)
+    recientes.value = transformarDocumentos(recientesData)
+    topCategorias.value = topCategoriasData
+  } catch (error) {
+    console.error('Error loading home data:', error)
+  }
+})
+
+// Métodos
+function abrirDetalle(documento: DocumentoTransformado) {
+  documentoSeleccionado.value = documento
+  modalAbierto.value = true
+}
+
+function cerrarDetalle() {
+  modalAbierto.value = false
+  documentoSeleccionado.value = null
+}
+
 // SEO
 useHead({
   title: 'BOE Explicado - El Boletín Oficial del Estado para Todos',

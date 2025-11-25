@@ -315,6 +315,173 @@ export async function getDocumentosByDateRange(
   return data
 }
 
+/**
+ * Obtiene documentos destacados de todas las categorías
+ * con explicaciones LLM incluidas
+ */
+export async function getDocumentosDestacados(limit: number = 8) {
+  const { supabase } = useSupabase()
+
+  // Obtener últimos 7 días
+  const hoy = new Date()
+  const hace7Dias = new Date()
+  hace7Dias.setDate(hoy.getDate() - 7)
+
+  const { data, error } = await supabase
+    .from('documentos_boe')
+    .select(`
+      *,
+      categoria:categorias(*),
+      explicaciones:explicaciones_llm(*)
+    `)
+    .eq('procesado', true)
+    .eq('importante', true)
+    .gte('fecha_publicacion', hace7Dias.toISOString().split('T')[0])
+    .order('fecha_publicacion', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Error fetching documentos destacados:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Obtiene documentos recientes con explicaciones LLM
+ * para la home page
+ */
+export async function getDocumentosRecentesConExplicaciones(
+  limit: number = 12,
+  dias: number = 7
+) {
+  const { supabase } = useSupabase()
+
+  const hoy = new Date()
+  const desde = new Date()
+  desde.setDate(hoy.getDate() - dias)
+
+  const { data, error } = await supabase
+    .from('documentos_boe')
+    .select(`
+      *,
+      categoria:categorias(*),
+      explicaciones:explicaciones_llm(*)
+    `)
+    .eq('procesado', true)
+    .gte('fecha_publicacion', desde.toISOString().split('T')[0])
+    .order('fecha_publicacion', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Error fetching documentos recientes con explicaciones:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Obtiene estadísticas semanales agregadas de todas las categorías
+ * para mostrar en la home
+ */
+export async function getEstadisticasSemanalesGlobal() {
+  const { supabase } = useSupabase()
+
+  // Obtener última semana de cada categoría
+  const hoy = new Date()
+  const hace7Dias = new Date()
+  hace7Dias.setDate(hoy.getDate() - 7)
+
+  const { data, error } = await supabase
+    .from('estadisticas_categorias')
+    .select(`
+      *,
+      categoria:categorias(*)
+    `)
+    .gte('semana_inicio', hace7Dias.toISOString().split('T')[0])
+    .order('total_documentos', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching estadisticas globales:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Obtiene conteos rápidos para stats de la home
+ */
+export async function getEstadisticasHome() {
+  const { supabase } = useSupabase()
+
+  const hoy = new Date()
+  const hace7Dias = new Date()
+  hace7Dias.setDate(hoy.getDate() - 7)
+  const fechaDesde = hace7Dias.toISOString().split('T')[0]
+
+  // Documentos totales esta semana
+  const { count: totalSemana, error: errorTotal } = await supabase
+    .from('documentos_boe')
+    .select('*', { count: 'exact', head: true })
+    .eq('procesado', true)
+    .gte('fecha_publicacion', fechaDesde)
+
+  // Documentos importantes
+  const { count: totalImportantes, error: errorImportantes } = await supabase
+    .from('documentos_boe')
+    .select('*', { count: 'exact', head: true })
+    .eq('procesado', true)
+    .eq('importante', true)
+    .gte('fecha_publicacion', fechaDesde)
+
+  // Categorías activas
+  const { count: totalCategorias, error: errorCategorias } = await supabase
+    .from('categorias')
+    .select('*', { count: 'exact', head: true })
+    .eq('activa', true)
+
+  if (errorTotal || errorImportantes || errorCategorias) {
+    console.error('Error fetching stats home:', { errorTotal, errorImportantes, errorCategorias })
+  }
+
+  return {
+    documentosSemana: totalSemana || 0,
+    documentosImportantes: totalImportantes || 0,
+    categoriasActivas: totalCategorias || 0,
+  }
+}
+
+/**
+ * Obtiene las top 4 categorías más activas de la semana
+ */
+export async function getTopCategoriasActivas(limit: number = 4) {
+  const { supabase } = useSupabase()
+
+  const hoy = new Date()
+  const hace7Dias = new Date()
+  hace7Dias.setDate(hoy.getDate() - 7)
+
+  const { data, error } = await supabase
+    .from('estadisticas_categorias')
+    .select(`
+      *,
+      categoria:categorias(*)
+    `)
+    .gte('semana_inicio', hace7Dias.toISOString().split('T')[0])
+    .order('total_documentos', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Error fetching top categorias:', error)
+    return []
+  }
+
+  return data || []
+}
+
 // ================================================================
 // TIPOS HELPER
 // ================================================================

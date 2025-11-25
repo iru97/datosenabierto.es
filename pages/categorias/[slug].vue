@@ -167,7 +167,16 @@
           <DocumentoCardEducativo
             v-for="documento in documentosFiltrados"
             :key="documento.id"
-            :documento="documento"
+            :titulo="documento.titulo"
+            :tipo-documento="documento.tipoDocumento"
+            :explicacion="documento.explicacion"
+            :como-afecta="documento.comoAfecta"
+            :fecha-importante="documento.fechaImportante"
+            :organismo="documento.organismo"
+            :requisitos-clave="documento.requisitos"
+            :keywords="documento.keywords"
+            :url-pdf="documento.url_pdf"
+            :fecha-publicacion="documento.fecha_publicacion"
             @ver-detalle="abrirDetalle(documento)"
           />
         </div>
@@ -231,6 +240,7 @@ import {
   type Documento,
   type Estadistica,
 } from '~/composables/useSupabase'
+import { transformarDocumentos, type DocumentoTransformado } from '~/utils/document-transformer'
 import { CATEGORIA_INFO } from '~/utils/categoria-info'
 import FiltrosInteligentes from '~/components/FiltrosInteligentes.vue'
 import TimelineFechas from '~/components/TimelineFechas.vue'
@@ -250,7 +260,7 @@ const categoriaInfoData = computed(() => {
 const loading = ref(true)
 const error = ref<string | null>(null)
 const categoria = ref<Categoria | null>(null)
-const documentos = ref<Documento[]>([])
+const documentos = ref<DocumentoTransformado[]>([])
 const estadisticaSemanal = ref<Estadistica | null>(null)
 const totalDocumentos = ref(0)
 const documentosImportantes = ref(0)
@@ -397,10 +407,13 @@ async function fetchDocumentos() {
     hasta,
   })
 
+  // Transformar documentos para UI
+  const docsTransformados = transformarDocumentos(result.data)
+
   if (page.value === 0) {
-    documentos.value = result.data
+    documentos.value = docsTransformados
   } else {
-    documentos.value.push(...result.data)
+    documentos.value.push(...docsTransformados)
   }
 
   hasMore.value = result.data.length === limit
