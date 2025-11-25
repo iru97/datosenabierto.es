@@ -515,7 +515,8 @@ async function fetchDocumentoCompleto(boe_id: string): Promise<DocumentoBOE | nu
   try {
     // Obtener XML del documento completo desde la API del BOE
     // Formato de ID: BOE-A-2024-12345
-    const data = await fetchBoeApiDirect(`/documento/${boe_id}`, 'xml')
+    // URL correcta: /${id}.xml NO /documento/${id}
+    const data = await fetchBoeApiDirect(`/${boe_id}.xml`, 'xml')
 
     if (!data) {
       console.warn(`⚠️  No se pudo obtener XML para ${boe_id}`)

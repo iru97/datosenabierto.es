@@ -102,7 +102,8 @@ function clasificarDocumento(doc: any, categorias: any[]): any | null {
 
 async function fetchDocumentoCompleto(boe_id: string): Promise<{ contenido_texto: string } | null> {
   try {
-    const data = await fetchBoeApiDirect(`/documento/${boe_id}`, 'xml')
+    // URL correcta según server/api/boe/documento/[id].ts: /${id}.xml NO /documento/${id}
+    const data = await fetchBoeApiDirect(`/${boe_id}.xml`, 'xml')
 
     if (!data) {
       return null
