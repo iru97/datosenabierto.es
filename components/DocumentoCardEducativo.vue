@@ -44,12 +44,6 @@
           <span>🏛️</span>
           <span class="text-gray-600">{{ organismo }}</span>
         </div>
-
-        <!-- Requisitos (si aplica) -->
-        <div v-if="requisitosClave" class="flex items-center gap-2 text-sm">
-          <span>📚</span>
-          <span class="text-gray-600">{{ requisitosClave }}</span>
-        </div>
       </div>
 
       <!-- Sección "¿Cómo me afecta?" -->
@@ -109,7 +103,6 @@ interface Props {
   comoAfecta?: string
   fechaImportante?: FechaImportante
   organismo?: string
-  requisitosClave?: string
   keywords?: string[]
   urlPdf?: string
   fechaPublicacion: string

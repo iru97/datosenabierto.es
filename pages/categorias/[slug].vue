@@ -173,7 +173,6 @@
             :como-afecta="documento.comoAfecta"
             :fecha-importante="documento.fechaImportante"
             :organismo="documento.organismo"
-            :requisitos-clave="documento.requisitos"
             :keywords="documento.keywords"
             :url-pdf="documento.url_pdf"
             :fecha-publicacion="documento.fecha_publicacion"
