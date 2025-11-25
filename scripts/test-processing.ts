@@ -175,13 +175,13 @@ async function main() {
 
   const startTime = Date.now()
 
-  // Usar fechas fijas conocidas (semana del 18-22 de noviembre de 2024)
-  // Evitamos problemas con fecha del sistema y aseguramos que hay datos
-  const fechaInicio = '2024-11-18'
-  const fechaFin = '2024-11-22'
+  // Calcular última semana (5 días laborables)
+  const hoy = new Date()
+  const inicio = new Date(hoy)
+  inicio.setDate(hoy.getDate() - 7) // Última semana
 
-  const inicio = new Date(fechaInicio)
-  const hoy = new Date(fechaFin)
+  const fechaInicio = inicio.toISOString().split('T')[0]
+  const fechaFin = hoy.toISOString().split('T')[0]
 
   console.log(`📅 Periodo: ${fechaInicio} a ${fechaFin}\n`)
 
