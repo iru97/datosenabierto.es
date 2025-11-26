@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS documento_categorias (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_doc_cat_documento ON documento_categorias(documento_id);
-CREATE INDEX idx_doc_cat_categoria ON documento_categorias(categoria_id);
-CREATE INDEX idx_doc_cat_confidence ON documento_categorias(confidence DESC);
-CREATE INDEX idx_doc_cat_metodo ON documento_categorias(clasificacion_metodo);
+CREATE INDEX IF NOT EXISTS idx_doc_cat_documento ON documento_categorias(documento_id);
+CREATE INDEX IF NOT EXISTS idx_doc_cat_categoria ON documento_categorias(categoria_id);
+CREATE INDEX IF NOT EXISTS idx_doc_cat_confidence ON documento_categorias(confidence DESC);
+CREATE INDEX IF NOT EXISTS idx_doc_cat_metodo ON documento_categorias(clasificacion_metodo);
 
 -- ============================================
 -- 2. CLASSIFICATION FEEDBACK
@@ -41,9 +41,9 @@ CREATE TABLE IF NOT EXISTS classification_feedback (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_feedback_documento ON classification_feedback(documento_id);
-CREATE INDEX idx_feedback_correcto ON classification_feedback(correcto);
-CREATE INDEX idx_feedback_created ON classification_feedback(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_documento ON classification_feedback(documento_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_correcto ON classification_feedback(correcto);
+CREATE INDEX IF NOT EXISTS idx_feedback_created ON classification_feedback(created_at DESC);
 
 -- ============================================
 -- 3. CLASSIFICATION METRICS
@@ -75,9 +75,9 @@ CREATE TABLE IF NOT EXISTS classification_metrics (
   UNIQUE(categoria_id, periodo)
 );
 
-CREATE INDEX idx_metrics_categoria ON classification_metrics(categoria_id);
-CREATE INDEX idx_metrics_periodo ON classification_metrics(periodo DESC);
-CREATE INDEX idx_metrics_f1 ON classification_metrics(metric_f1_score DESC);
+CREATE INDEX IF NOT EXISTS idx_metrics_categoria ON classification_metrics(categoria_id);
+CREATE INDEX IF NOT EXISTS idx_metrics_periodo ON classification_metrics(periodo DESC);
+CREATE INDEX IF NOT EXISTS idx_metrics_f1 ON classification_metrics(metric_f1_score DESC);
 
 -- ============================================
 -- 4. MIGRATE EXISTING DATA
