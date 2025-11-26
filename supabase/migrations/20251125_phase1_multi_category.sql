@@ -103,9 +103,9 @@ ON CONFLICT (documento_id, categoria_id) DO NOTHING;
 CREATE OR REPLACE VIEW documentos_con_categoria_principal AS
 SELECT
   d.*,
-  dc.categoria_id,
-  dc.confidence,
-  dc.clasificacion_metodo
+  dc.categoria_id as primary_categoria_id,
+  dc.confidence as primary_confidence,
+  dc.clasificacion_metodo as primary_metodo
 FROM documentos_boe d
 LEFT JOIN LATERAL (
   SELECT categoria_id, confidence, clasificacion_metodo
