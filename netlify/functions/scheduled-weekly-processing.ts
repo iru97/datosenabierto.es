@@ -39,6 +39,7 @@ import {
   clasificarDocumentoConLLM,
   guardarClasificaciones
 } from '../../utils/clasificador-llm'
+import { extraerContenidoBOE } from '../../utils/boe-xml-parser'
 
 // ============================================================================
 // SETUP
@@ -550,15 +551,11 @@ async function fetchDocumentoCompleto(boe_id: string): Promise<DocumentoBOE | nu
       return null
     }
 
-    // Extraer texto del XML (básico - se puede mejorar con parser XML)
-    const textoMatch = data.match(/<texto[^>]*>([\s\S]*?)<\/texto>/i)
-    const texto = textoMatch ? textoMatch[1].replace(/<[^>]+>/g, ' ').trim() : ''
+    // Usar parser mejorado que extrae TODO el contenido (artículos, disposiciones, anexos)
+    const contenido = extraerContenidoBOE(data)
 
-    // Si no hay texto suficiente, intentar con otros campos
-    const contenido = texto || data.toString().substring(0, 5000)
-
-    if (contenido.length < 50) {
-      console.warn(`⚠️  Contenido muy corto para ${boe_id}`)
+    if (contenido.length < 100) {
+      console.warn(`⚠️  Contenido muy corto para ${boe_id}: ${contenido.length} chars`)
       return null
     }
 

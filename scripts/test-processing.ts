@@ -26,6 +26,7 @@ import {
   type CategoriaSlug,
 } from '../utils/boe-api'
 import { clasificarDocumentoConLLM, guardarClasificaciones } from '../utils/clasificador-llm'
+import { extraerContenidoBOE } from '../utils/boe-xml-parser'
 import { ProxyAgent } from 'undici'
 
 // ============================================================================
@@ -150,15 +151,12 @@ async function fetchDocumentoCompleto(boe_id: string, url_xml?: string): Promise
       return null
     }
 
-    console.log(`   ✓ XML descargado, tamaño: ${data.length} caracteres`)
+    console.log(`   ✓ XML descargado, tamaño: ${data.length.toLocaleString()} caracteres`)
 
-    const textoMatch = data.match(/<texto[^>]*>([\s\S]*?)<\/texto>/i)
-    const texto = textoMatch ? textoMatch[1].replace(/<[^>]+>/g, ' ').trim() : ''
-    const contenido = texto || data.toString().substring(0, 5000)
+    // Usar parser mejorado que extrae TODO el contenido
+    const contenido = extraerContenidoBOE(data)
 
-    console.log(`   ✓ Texto extraído: ${contenido.length} caracteres`)
-
-    if (contenido.length < 50) {
+    if (contenido.length < 100) {
       console.log(`   ⚠️  Contenido muy corto: ${contenido.length} caracteres`)
       return null
     }
