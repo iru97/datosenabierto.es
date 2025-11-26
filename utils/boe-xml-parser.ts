@@ -66,8 +66,90 @@ function extraerTextoDeTag(xml: string, tagName: string): string[] {
 
 /**
  * Parser principal que extrae TODO el contenido del XML del BOE
+ *
+ * ESTRUCTURA REAL del XML del BOE:
+ * <documento>
+ *   <texto>
+ *     <p class="parrafo">...</p>
+ *     <p class="articulo">Primero.</p>
+ *     <p class="anexo_tit">...</p>
+ *     <table>...</table>
+ *   </texto>
+ * </documento>
  */
 export function parseBOEXML(xmlContent: string): ContenidoExtraido {
+  const elementosEncontrados: string[] = []
+
+  // Extraer el elemento <texto> que contiene TODO el contenido
+  const textoMatch = xmlContent.match(/<texto[^>]*>([\s\S]*?)<\/texto>/i)
+
+  if (!textoMatch) {
+    // Fallback: intentar estructura antigua
+    console.warn('⚠️  No se encontró tag <texto>, intentando estructura legacy')
+    return parseBOEXMLLegacy(xmlContent)
+  }
+
+  let contenido = textoMatch[1]
+  elementosEncontrados.push('texto')
+
+  // Detectar tipos de elementos para metadata
+  const tieneArticulos = /<p\s+class="[^"]*articulo[^"]*"/i.test(contenido)
+  const tieneAnexos = /<p\s+class="[^"]*anexo[^"]*"/i.test(contenido)
+  const tieneTablas = /<table/i.test(contenido)
+
+  if (tieneArticulos) elementosEncontrados.push('articulos')
+  if (tieneAnexos) elementosEncontrados.push('anexos')
+  if (tieneTablas) elementosEncontrados.push('tablas')
+
+  // Convertir a texto limpio preservando estructura
+  // 1. Agregar saltos de línea después de elementos de bloque
+  contenido = contenido.replace(/<\/p>/gi, '\n')
+  contenido = contenido.replace(/<\/tr>/gi, '\n')
+  contenido = contenido.replace(/<\/th>/gi, ' | ')
+  contenido = contenido.replace(/<\/td>/gi, ' | ')
+  contenido = contenido.replace(/<br\s*\/?>/gi, '\n')
+
+  // 2. Remover todos los tags XML/HTML
+  contenido = contenido.replace(/<[^>]+>/g, ' ')
+
+  // 3. Decodificar entidades HTML
+  contenido = contenido
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)))
+
+  // 4. Limpiar espacios en blanco
+  contenido = contenido
+    .replace(/[ \t]+/g, ' ')      // Múltiples espacios/tabs -> un espacio
+    .replace(/\n\s+/g, '\n')      // Quitar espacios al inicio de líneas
+    .replace(/\n{3,}/g, '\n\n')   // Múltiples saltos -> doble salto
+    .trim()
+
+  const textoCompleto = contenido
+
+  return {
+    texto_completo: textoCompleto,
+    estructura: {
+      preambulo: '',
+      articulos: tieneArticulos ? ['(artículos detectados en el texto)'] : [],
+      disposiciones: [],
+      anexos: tieneAnexos ? ['(anexos detectados en el texto)'] : []
+    },
+    metadata: {
+      caracteres_originales: xmlContent.length,
+      caracteres_extraidos: textoCompleto.length,
+      elementos_encontrados: elementosEncontrados
+    }
+  }
+}
+
+/**
+ * Fallback parser para XMLs con estructura antigua
+ */
+function parseBOEXMLLegacy(xmlContent: string): ContenidoExtraido {
   const elementosEncontrados: string[] = []
 
   // 1. Buscar preámbulo
@@ -92,7 +174,7 @@ export function parseBOEXML(xmlContent: string): ContenidoExtraido {
   const anexos = extraerTextoDeTag(xmlContent, 'anexo')
   if (anexos.length > 0) elementosEncontrados.push('anexos')
 
-  // 5. Fallback: buscar tag <texto> general
+  // 5. Fallback: buscar tag <texto> general (extracción simple)
   let textoGeneral: string[] = []
   if (articulos.length === 0 && disposiciones.length === 0) {
     textoGeneral = extraerTextoDeTag(xmlContent, 'texto')

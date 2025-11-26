@@ -11,6 +11,7 @@
     "test:mock": "tsx scripts/test-processing-mock.ts",
     "test:clasificador": "tsx scripts/test-clasificador-llm.ts",
     "test:multi-category": "tsx scripts/test-multi-category-migration.ts",
+    "test:parser": "tsx scripts/test-parser.ts",
     "inspect:xml": "tsx scripts/inspect-xml.ts"
   },
   "dependencies": {
