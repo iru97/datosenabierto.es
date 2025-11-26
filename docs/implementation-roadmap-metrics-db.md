@@ -56,9 +56,9 @@ CREATE TABLE classification_metrics (
   false_negatives INT DEFAULT 0,
   true_negatives INT DEFAULT 0,
 
-  precision DECIMAL(5,4),
-  recall DECIMAL(5,4),
-  f1_score DECIMAL(5,4),
+  metric_precision DECIMAL(5,4),
+  metric_recall DECIMAL(5,4),
+  metric_f1_score DECIMAL(5,4),
 
   metodo_rule_count INT DEFAULT 0,
   metodo_keyword_count INT DEFAULT 0,

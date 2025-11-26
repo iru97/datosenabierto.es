@@ -440,9 +440,9 @@ interface ClassificationMetrics {
   true_negatives: number
 
   // Calculated
-  precision: number // TP / (TP + FP)
-  recall: number    // TP / (TP + FN)
-  f1_score: number  // 2 * (precision * recall) / (precision + recall)
+  metric_precision: number // TP / (TP + FP)
+  metric_recall: number    // TP / (TP + FN)
+  metric_f1_score: number  // 2 * (precision * recall) / (precision + recall)
 
   // Método
   metodo_breakdown: {
