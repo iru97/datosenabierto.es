@@ -10,6 +10,7 @@ Guía paso a paso para desplegar la nueva funcionalidad de multi-categorías.
 - [ ] Variables de entorno configuradas:
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
+  - `OPENAI_API_KEY` (para clasificador LLM)
 - [ ] Backup de base de datos realizado
 
 ---
@@ -114,7 +115,48 @@ npm run preview
 
 ---
 
-## 🔄 Paso 5: Reclasificar Documentos (Opcional pero Recomendado)
+## 🤖 Paso 5: Probar Clasificador LLM (Nuevo)
+
+Este paso prueba el nuevo clasificador LLM con documentos de ejemplo.
+
+```bash
+export OPENAI_API_KEY="your_key_here"
+export SUPABASE_URL="your_url_here"
+export SUPABASE_SERVICE_ROLE_KEY="your_key_here"
+
+npm run test:clasificador
+```
+
+**Output esperado:**
+```
+🧪 TEST: Clasificador LLM Multi-Categoría
+================================================================================
+
+📄 DOCUMENTO: BOE-A-2025-1234
+   Título: Resolución... convoca proceso selectivo para ingreso en el Cuerpo...
+   Rango: Resolución
+
+   ✅ Clasificado en 1 categorías:
+      ⭐ oposiciones         - 98% - Convocatoria de proceso selectivo para empleo público
+
+   💰 Coste: $0.00034
+   🔢 Tokens: 287
+   ⏱️  Duración: 823ms
+
+📊 RESUMEN
+Documentos procesados: 5
+Categorías asignadas (total): 8
+Promedio categorías/doc: 1.60
+
+💰 Coste total: $0.00165
+💰 Coste promedio/doc: $0.00033
+```
+
+**Nota:** El clasificador LLM se integra automáticamente en el procesamiento semanal. No requiere configuración adicional.
+
+---
+
+## 🔄 Paso 6: Reclasificar Documentos Existentes (Opcional)
 
 Este paso asigna múltiples categorías a documentos existentes basándose en keywords.
 

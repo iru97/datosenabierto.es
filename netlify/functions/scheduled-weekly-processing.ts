@@ -35,6 +35,10 @@ import {
   KEYWORDS_BY_CATEGORY,
   type CategoriaSlug,
 } from '../../utils/boe-api'
+import {
+  clasificarDocumentoConLLM,
+  guardarClasificaciones
+} from '../../utils/clasificador-llm'
 
 // ============================================================================
 // SETUP
@@ -221,30 +225,50 @@ export const handler = schedule('0 7 * * 0', async (event, context) => {
             contenido_texto: docContenido.contenido_texto,
           }
 
-          // Obtener categoría
-          const categoria = categorias.find(c => c.id === item.categoria_id)
-          if (!categoria) {
-            console.warn(`⚠️  Categoría no encontrada para ${item.metadata.boe_id}`)
+          // ================================================================
+          // FASE 0: CLASIFICACIÓN MULTI-CATEGORÍA CON LLM
+          // ================================================================
+
+          const clasificacion = await clasificarDocumentoConLLM({
+            boe_id: docCompleto.boe_id,
+            titulo: docCompleto.titulo,
+            fecha_publicacion: docCompleto.fecha_publicacion,
+            seccion: docCompleto.seccion,
+            departamento: docCompleto.departamento,
+            rango: docCompleto.rango,
+            epigrafe: item.metadata.epigrafe
+          })
+
+          if (!clasificacion.categorias || clasificacion.categorias.length === 0) {
+            console.warn(`⚠️  No se pudo clasificar ${item.metadata.boe_id}`)
             await removeFromQueue(item.id)
             continue
           }
 
-          // ================================================================
-          // PROCESAR CON AGENTES LLM (4 FASES)
-          // ================================================================
+          // Categoría principal = mayor confidence
+          const categoriaPrincipal = clasificacion.categorias[0]
 
-          const resultado = await procesarDocumentoCompleto(docCompleto, categoria.slug)
+          console.log(`📊 Clasificado en ${clasificacion.categorias.length} categorías:`)
+          clasificacion.categorias.forEach(cat => {
+            console.log(`   - ${cat.categoria_slug}: ${(cat.confidence * 100).toFixed(0)}%`)
+          })
+
+          // ================================================================
+          // FASES 1-4: PROCESAR CON AGENTES EDUCATIVOS
+          // ================================================================
+          // Usamos la categoría PRINCIPAL para generar contenido educativo
+
+          const resultado = await procesarDocumentoCompleto(docCompleto, categoriaPrincipal.categoria_slug)
 
           // ================================================================
           // GUARDAR EN SUPABASE
           // ================================================================
 
           // 1. Guardar documento en tabla documentos_boe
-          const { data: docGuardado } = await supabase
+          const { data: docGuardado, error: docError } = await supabase
             .from('documentos_boe')
             .insert({
               boe_id: docCompleto.boe_id,
-              categoria_id: categoria.id,
               fecha_publicacion: docCompleto.fecha_publicacion,
               titulo: docCompleto.titulo,
               seccion: docCompleto.seccion,
@@ -260,12 +284,15 @@ export const handler = schedule('0 7 * * 0', async (event, context) => {
             .select()
             .single()
 
-          if (!docGuardado) {
-            console.error(`❌ Error guardando documento ${docCompleto.boe_id}`)
+          if (docError || !docGuardado) {
+            console.error(`❌ Error guardando documento ${docCompleto.boe_id}:`, docError)
             continue
           }
 
-          // 2. Guardar explicaciones LLM
+          // 2. Guardar clasificaciones múltiples en documento_categorias
+          await guardarClasificaciones(docGuardado.id, clasificacion.categorias)
+
+          // 3. Guardar explicaciones LLM
           const explicaciones = [
             {
               documento_id: docGuardado.id,
