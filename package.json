@@ -10,7 +10,8 @@
     "test:processing": "tsx scripts/test-processing.ts",
     "test:mock": "tsx scripts/test-processing-mock.ts",
     "test:clasificador": "tsx scripts/test-clasificador-llm.ts",
-    "test:multi-category": "tsx scripts/test-multi-category-migration.ts"
+    "test:multi-category": "tsx scripts/test-multi-category-migration.ts",
+    "inspect:xml": "tsx scripts/inspect-xml.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.1",
