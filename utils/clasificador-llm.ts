@@ -145,14 +145,16 @@ const CLASIFICACION_SCHEMA = {
             description: "Por qué este documento pertenece a esta categoría (máximo 50 palabras)"
           }
         },
-        required: ["categoria_slug", "confidence", "razonamiento"]
+        required: ["categoria_slug", "confidence", "razonamiento"],
+        additionalProperties: false
       },
       minItems: 1,
       maxItems: 4,
       description: "Categorías ordenadas por relevancia (más importante primero)"
     }
   },
-  required: ["categorias"]
+  required: ["categorias"],
+  additionalProperties: false
 }
 
 // ============================================================================
