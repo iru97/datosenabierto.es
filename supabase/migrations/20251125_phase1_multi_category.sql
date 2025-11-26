@@ -61,9 +61,9 @@ CREATE TABLE IF NOT EXISTS classification_metrics (
   true_negatives INT DEFAULT 0,
 
   -- Calculated metrics
-  precision DECIMAL(5,4),
-  recall DECIMAL(5,4),
-  f1_score DECIMAL(5,4),
+  metric_precision DECIMAL(5,4),
+  metric_recall DECIMAL(5,4),
+  metric_f1_score DECIMAL(5,4),
 
   -- Method breakdown
   metodo_rule_count INT DEFAULT 0,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS classification_metrics (
 
 CREATE INDEX idx_metrics_categoria ON classification_metrics(categoria_id);
 CREATE INDEX idx_metrics_periodo ON classification_metrics(periodo DESC);
-CREATE INDEX idx_metrics_f1 ON classification_metrics(f1_score DESC);
+CREATE INDEX idx_metrics_f1 ON classification_metrics(metric_f1_score DESC);
 
 -- ============================================
 -- 4. MIGRATE EXISTING DATA
@@ -156,9 +156,9 @@ CREATE OR REPLACE FUNCTION calculate_classification_metrics(
   p_periodo VARCHAR(10)
 )
 RETURNS TABLE(
-  precision DECIMAL(5,4),
-  recall DECIMAL(5,4),
-  f1_score DECIMAL(5,4)
+  metric_precision DECIMAL(5,4),
+  metric_recall DECIMAL(5,4),
+  metric_f1_score DECIMAL(5,4)
 ) AS $$
 DECLARE
   tp INT;
