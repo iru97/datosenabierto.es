@@ -2,11 +2,17 @@
  * Script de prueba para verificar el procesamiento completo del BOE
  *
  * Este script:
- * 1. Descarga documentos BOE de los últimos 2 días
- * 2. Clasifica por categoría
- * 3. Procesa 3 documentos de muestra con LLM (para ahorrar costes)
- * 4. Guarda en Supabase
- * 5. Muestra los resultados
+ * 1. Descarga documentos BOE de los últimos 7 días
+ * 2. Clasifica con keywords (paso previo)
+ * 3. Procesa 3 documentos con TODO el flujo nuevo:
+ *    - FASE 0: Clasificación multi-categoría con LLM
+ *    - FASES 1-4: Generación de contenido educativo
+ * 4. Guarda en Supabase (documento + clasificaciones múltiples)
+ * 5. Muestra los resultados con costes desglosados
+ *
+ * Usage:
+ *   OPENAI_API_KEY=xxx SUPABASE_URL=xxx SUPABASE_SERVICE_ROLE_KEY=xxx \
+ *   npm run test:processing
  */
 
 import 'dotenv/config'
@@ -19,6 +25,7 @@ import {
   KEYWORDS_BY_CATEGORY,
   type CategoriaSlug,
 } from '../utils/boe-api'
+import { clasificarDocumentoConLLM, guardarClasificaciones } from '../utils/clasificador-llm'
 import { ProxyAgent } from 'undici'
 
 // ============================================================================
@@ -271,23 +278,61 @@ async function main() {
   console.log('')
 
   // ========================================================================
-  // PASO 4: Procesar con LLM
+  // PASO 4: Procesar con LLM (Fase 0 + Fases 1-4)
   // ========================================================================
 
-  console.log('🤖 Procesando con agentes LLM...\n')
+  console.log('🤖 Procesando con agentes LLM (Fase 0 + Fases 1-4)...\n')
 
   let procesados = 0
   let costoTotal = 0
   let tokensTotal = 0
+  let costoClasificacion = 0
+  let tokensClasificacion = 0
   const resultados_procesamiento: any[] = []
 
   for (const doc of docsParaProcesar) {
     console.log(`\n📄 Procesando: ${doc.titulo.substring(0, 60)}...`)
     console.log(`   BOE ID: ${doc.boe_id}`)
-    console.log(`   Categoría: ${doc.categoria_nombre}`)
 
     try {
-      // Obtener contenido completo usando url_xml del sumario
+      // ======================================================================
+      // FASE 0: CLASIFICACIÓN MULTI-CATEGORÍA CON LLM
+      // ======================================================================
+
+      console.log('   🤖 [FASE 0] Clasificando con LLM...')
+
+      const clasificacion = await clasificarDocumentoConLLM({
+        boe_id: doc.boe_id,
+        titulo: doc.titulo,
+        fecha_publicacion: doc.fecha_publicacion,
+        seccion: doc.seccion,
+        departamento: doc.departamento,
+        rango: doc.rango,
+        epigrafe: doc.epigrafe
+      })
+
+      if (!clasificacion.categorias || clasificacion.categorias.length === 0) {
+        console.log('   ⚠️  No se pudo clasificar')
+        continue
+      }
+
+      console.log(`   ✅ Clasificado en ${clasificacion.categorias.length} categorías:`)
+      clasificacion.categorias.forEach((cat, idx) => {
+        const icon = idx === 0 ? '⭐' : '  '
+        console.log(`      ${icon} ${cat.categoria_slug} (${(cat.confidence * 100).toFixed(0)}%)`)
+      })
+      console.log(`   💰 Coste clasificación: $${clasificacion.metadata.coste_usd.toFixed(5)}`)
+
+      costoClasificacion += clasificacion.metadata.coste_usd
+      tokensClasificacion += clasificacion.metadata.tokens
+
+      // Categoría principal = mayor confidence
+      const categoriaPrincipal = clasificacion.categorias[0]
+
+      // ======================================================================
+      // OBTENER CONTENIDO COMPLETO
+      // ======================================================================
+
       const contenido = await fetchDocumentoCompleto(doc.boe_id, doc.url_xml)
 
       if (!contenido) {
@@ -307,22 +352,28 @@ async function main() {
         contenido_texto: contenido.contenido_texto,
       }
 
-      // Procesar con las 4 fases
-      console.log('   🔄 Ejecutando 4 fases...')
-      const resultado = await procesarDocumentoCompleto(docCompleto, doc.categoria_slug)
+      // ======================================================================
+      // FASES 1-4: PROCESAMIENTO EDUCATIVO
+      // ======================================================================
+
+      console.log(`   🔄 [FASES 1-4] Generando contenido educativo (categoría: ${categoriaPrincipal.categoria_slug})...`)
+      const resultado = await procesarDocumentoCompleto(docCompleto, categoriaPrincipal.categoria_slug)
 
       console.log(`   ✅ Procesado exitosamente`)
       console.log(`   📊 Tokens: ${resultado.metadata.tokens_usados}`)
       console.log(`   💰 Coste: $${resultado.metadata.coste_estimado_usd.toFixed(6)}`)
 
-      // Guardar en Supabase
+      // ======================================================================
+      // GUARDAR EN SUPABASE
+      // ======================================================================
+
       console.log('   💾 Guardando en Supabase...')
 
+      // 1. Guardar documento
       const { data: docGuardado, error: errorDoc } = await supabase
         .from('documentos_boe')
         .upsert({
           boe_id: doc.boe_id,
-          categoria_id: doc.categoria_id,
           fecha_publicacion: doc.fecha_publicacion,
           titulo: doc.titulo,
           seccion: doc.seccion,
@@ -343,6 +394,20 @@ async function main() {
       if (errorDoc || !docGuardado) {
         console.log(`   ❌ Error guardando documento: ${errorDoc?.message}`)
         continue
+      }
+
+      // 2. Guardar clasificaciones múltiples en documento_categorias
+      try {
+        // Primero borrar clasificaciones anteriores si existen (para reprocesar)
+        await supabase
+          .from('documento_categorias')
+          .delete()
+          .eq('documento_id', docGuardado.id)
+
+        await guardarClasificaciones(docGuardado.id, clasificacion.categorias)
+        console.log(`   ✅ Guardadas ${clasificacion.categorias.length} clasificaciones`)
+      } catch (error: any) {
+        console.log(`   ⚠️  Error guardando clasificaciones: ${error.message}`)
       }
 
       // Guardar explicaciones
@@ -413,7 +478,8 @@ async function main() {
       resultados_procesamiento.push({
         boe_id: doc.boe_id,
         titulo: doc.titulo.substring(0, 80),
-        categoria: doc.categoria_nombre,
+        categorias: clasificacion.categorias,
+        categoria_principal: categoriaPrincipal.categoria_slug,
         resultado,
       })
     } catch (error: any) {
@@ -433,8 +499,13 @@ async function main() {
   console.log(`📊 Documentos descargados: ${documentos.length}`)
   console.log(`📊 Documentos clasificados: ${documentosClasificados.length}`)
   console.log(`📊 Documentos procesados con LLM: ${procesados}`)
-  console.log(`📊 Tokens totales: ${tokensTotal.toLocaleString()}`)
-  console.log(`💰 Coste total: $${costoTotal.toFixed(6)}`)
+  console.log('')
+  console.log('💰 COSTES:')
+  console.log(`   Clasificación (Fase 0): $${costoClasificacion.toFixed(6)} (${tokensClasificacion.toLocaleString()} tokens)`)
+  console.log(`   Contenido (Fases 1-4):  $${costoTotal.toFixed(6)} (${tokensTotal.toLocaleString()} tokens)`)
+  console.log(`   TOTAL:                  $${(costoClasificacion + costoTotal).toFixed(6)}`)
+  console.log(`   Promedio/doc:           $${((costoClasificacion + costoTotal) / procesados).toFixed(6)}`)
+  console.log('')
   console.log(`⏱️  Tiempo total: ${tiempoTotal}s`)
   console.log('✅ ============================================\n')
 
@@ -443,8 +514,12 @@ async function main() {
 
     for (const res of resultados_procesamiento) {
       console.log(`\n📄 ${res.titulo}`)
-      console.log(`   Categoría: ${res.categoria}`)
       console.log(`   BOE ID: ${res.boe_id}`)
+      console.log(`   Categorías:`)
+      res.categorias.forEach((cat: any, idx: number) => {
+        const icon = idx === 0 ? '⭐' : '  '
+        console.log(`      ${icon} ${cat.categoria_slug} (${(cat.confidence * 100).toFixed(0)}%) - ${cat.razonamiento}`)
+      })
       console.log('\n   📝 RESUMEN (3 líneas):')
       console.log(`   1. ${res.resultado.fase2.linea1}`)
       console.log(`   2. ${res.resultado.fase2.linea2}`)
