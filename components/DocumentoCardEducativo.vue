@@ -15,9 +15,19 @@
         {{ impactStatement }}
       </h3>
 
-      <!-- 2. TYPE + CATEGORY BADGE (Priority 2) -->
+      <!-- 2. MULTI-CATEGORY BADGES + TYPE (Priority 2) -->
       <div class="metadata-row">
-        <span :class="['type-badge', `badge-${categoryColor}`]">
+        <!-- Multi-category badges if available -->
+        <MultiCategoryBadges
+          v-if="categorias && categorias.length > 0"
+          :categorias="categorias"
+          :maxVisible="2"
+        />
+        <!-- Fallback to type badge if no categories -->
+        <span
+          v-else
+          :class="['type-badge', `badge-${categoryColor}`]"
+        >
           {{ tipoDocumento }}
         </span>
       </div>
@@ -66,12 +76,21 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import MultiCategoryBadges from './MultiCategoryBadges.vue'
 
 interface FechaImportante {
   tipo: string
   fecha: string
   descripcion?: string
   diasRestantes?: number
+}
+
+interface Categoria {
+  categoria_id: string
+  categoria_slug: string
+  categoria_nombre: string
+  confidence: number
+  metodo: 'rule' | 'keyword' | 'llm' | 'legacy'
 }
 
 interface Props {
@@ -84,11 +103,13 @@ interface Props {
   keywords?: string[]
   urlPdf?: string
   fechaPublicacion: string
+  categorias?: Categoria[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   tipoDocumento: 'Documento BOE',
-  keywords: () => []
+  keywords: () => [],
+  categorias: () => []
 })
 
 defineEmits(['ver-detalle'])

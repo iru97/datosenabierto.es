@@ -132,6 +132,7 @@
             :keywords="doc.keywords"
             :url-pdf="doc.url_pdf"
             :fecha-publicacion="doc.fecha_publicacion"
+            :categorias="doc.categorias || []"
             @ver-detalle="abrirDetalle(doc)"
           />
         </div>
@@ -296,6 +297,7 @@
           :keywords="doc.keywords"
           :url-pdf="doc.url_pdf"
           :fecha-publicacion="doc.fecha_publicacion"
+          :categorias="doc.categorias || []"
           @ver-detalle="abrirDetalle(doc)"
         />
       </div>
@@ -422,6 +424,7 @@ import {
   getEstadisticasHome,
   getTopCategoriasActivas,
 } from '~/composables/useSupabase'
+import { getCategoriasDelDocumento } from '~/composables/useMultiCategory'
 import { transformarDocumentos, type DocumentoTransformado } from '~/utils/document-transformer'
 import DocumentoCardEducativo from '~/components/DocumentoCardEducativo.vue'
 import DocumentoDetalle from '~/components/DocumentoDetalle.vue'
@@ -435,6 +438,25 @@ const topCategorias = ref<any[]>([])
 const modalAbierto = ref(false)
 const documentoSeleccionado = ref<any>(null)
 
+// Helper function to enrich documents with multi-category data
+async function enrichDocumentosConCategorias(documentos: DocumentoTransformado[]) {
+  return await Promise.all(
+    documentos.map(async (doc) => {
+      const categorias = await getCategoriasDelDocumento(doc.id)
+      return {
+        ...doc,
+        categorias: categorias.map(cat => ({
+          categoria_id: cat.categoria_id,
+          categoria_slug: cat.categoria?.slug || '',
+          categoria_nombre: cat.categoria?.nombre || '',
+          confidence: cat.confidence,
+          metodo: cat.clasificacion_metodo
+        }))
+      }
+    })
+  )
+}
+
 // Cargar datos
 onMounted(async () => {
   try {
@@ -447,8 +469,19 @@ onMounted(async () => {
     ])
 
     stats.value = statsData
-    destacados.value = transformarDocumentos(destacadosData)
-    recientes.value = transformarDocumentos(recientesData)
+
+    // Transform and enrich with multi-category data
+    const destacadosTransformados = transformarDocumentos(destacadosData)
+    const recientesTransformados = transformarDocumentos(recientesData)
+
+    // Enrich with categories in parallel
+    const [destacadosEnriquecidos, recientesEnriquecidos] = await Promise.all([
+      enrichDocumentosConCategorias(destacadosTransformados),
+      enrichDocumentosConCategorias(recientesTransformados)
+    ])
+
+    destacados.value = destacadosEnriquecidos
+    recientes.value = recientesEnriquecidos
     topCategorias.value = topCategoriasData
   } catch (error) {
     console.error('Error loading home data:', error)

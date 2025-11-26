@@ -176,6 +176,7 @@
             :keywords="documento.keywords"
             :url-pdf="documento.url_pdf"
             :fecha-publicacion="documento.fecha_publicacion"
+            :categorias="documento.categorias || []"
             @ver-detalle="abrirDetalle(documento)"
           />
         </div>
@@ -239,6 +240,7 @@ import {
   type Documento,
   type Estadistica,
 } from '~/composables/useSupabase'
+import { getCategoriasDelDocumento } from '~/composables/useMultiCategory'
 import { transformarDocumentos, type DocumentoTransformado } from '~/utils/document-transformer'
 import { CATEGORIA_INFO } from '~/utils/categoria-info'
 import FiltrosInteligentes from '~/components/FiltrosInteligentes.vue'
@@ -249,6 +251,25 @@ import DocumentoDetalle from '~/components/DocumentoDetalle.vue'
 // Route
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
+
+// Helper function to enrich documents with multi-category data
+async function enrichDocumentosConCategorias(documentos: DocumentoTransformado[]) {
+  return await Promise.all(
+    documentos.map(async (doc) => {
+      const categorias = await getCategoriasDelDocumento(doc.id)
+      return {
+        ...doc,
+        categorias: categorias.map(cat => ({
+          categoria_id: cat.categoria_id,
+          categoria_slug: cat.categoria?.slug || '',
+          categoria_nombre: cat.categoria?.nombre || '',
+          confidence: cat.confidence,
+          metodo: cat.clasificacion_metodo
+        }))
+      }
+    })
+  )
+}
 
 // Información educativa de la categoría
 const categoriaInfoData = computed(() => {
@@ -409,10 +430,13 @@ async function fetchDocumentos() {
   // Transformar documentos para UI
   const docsTransformados = transformarDocumentos(result.data)
 
+  // Enrich with multi-category data
+  const docsEnriquecidos = await enrichDocumentosConCategorias(docsTransformados)
+
   if (page.value === 0) {
-    documentos.value = docsTransformados
+    documentos.value = docsEnriquecidos
   } else {
-    documentos.value.push(...docsTransformados)
+    documentos.value.push(...docsEnriquecidos)
   }
 
   hasMore.value = result.data.length === limit
