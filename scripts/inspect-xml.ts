@@ -9,7 +9,7 @@
 
 import 'dotenv/config'
 import { writeFileSync } from 'fs'
-import { fetchBoeApiDirect } from '../utils/boe-api'
+import { ProxyAgent } from 'undici'
 
 // BOE ID desde argumentos o default
 const BOE_ID = process.argv[2] || 'BOE-A-2025-23386'
@@ -19,12 +19,36 @@ async function main() {
   console.log('🔍 INSPECTOR DE XML DEL BOE')
   console.log('🔍 ============================================\n')
 
+  const url = `https://www.boe.es/diario_boe/xml.php?id=${BOE_ID}`
   console.log(`📄 Descargando: ${BOE_ID}`)
-  console.log(`   URL: https://www.boe.es/diario_boe/xml.php?id=${BOE_ID}\n`)
+  console.log(`   URL: ${url}\n`)
 
   try {
-    // Descargar XML
-    const xmlData = await fetchBoeApiDirect(`/${BOE_ID}.xml`, 'xml')
+    // Descargar XML directamente (como hace test-processing.ts)
+    const fetchOptions: any = {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'datosenabierto.es/1.0',
+      },
+    }
+
+    // Configurar proxy si está disponible
+    const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY ||
+                     process.env.http_proxy || process.env.HTTP_PROXY
+
+    if (proxyUrl) {
+      const agent = new ProxyAgent(proxyUrl)
+      fetchOptions.dispatcher = agent
+    }
+
+    const response = await fetch(url, fetchOptions)
+
+    if (!response.ok) {
+      console.error(`❌ Error HTTP ${response.status}: ${response.statusText}`)
+      process.exit(1)
+    }
+
+    const xmlData = await response.text()
 
     if (!xmlData) {
       console.error('❌ No se pudo descargar el XML')
