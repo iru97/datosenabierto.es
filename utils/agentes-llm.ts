@@ -381,7 +381,7 @@ ${datosFase1.fechas_importantes.length > 0
 Genera el resumen de 3 líneas siguiendo el schema JSON.`
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     max_tokens: 400,
     temperature: 0.7,
     messages: [
@@ -510,7 +510,7 @@ IMPORTANTE:
 - "Ejemplo concreto" debe ser una situación real y específica`
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     max_tokens: 800,
     temperature: 0.8,
     messages: [
@@ -712,7 +712,7 @@ IMPORTANTE:
 - SÍ incluir requisitos previos (afiliación, experiencia, etc.)`
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     max_tokens: 1200,
     temperature: 0.6,
     messages: [
@@ -804,7 +804,7 @@ IMPORTANTE:
 - Si no hay plazo para un paso: usa cadena vacía ""`
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     max_tokens: 1400,
     temperature: 0.6,
     messages: [
@@ -877,10 +877,10 @@ export async function procesarDocumentoCompleto(
   const tiempo_total_ms = Date.now() - inicio
 
   // Coste real calculado con tokens reales de la API
-  // GPT-4o-mini: $0.15/1M input tokens, $0.60/1M output tokens
+  // GPT-4.1-nano: $0.10/1M input tokens, $0.40/1M output tokens
   // Asumiendo ratio 60/40 input/output (más input que output en promedio)
-  // Promedio: (0.15 * 0.6) + (0.60 * 0.4) = 0.09 + 0.24 = 0.33/1M tokens
-  const coste_estimado_usd = (tokens_usados * 0.33) / 1_000_000
+  // Promedio: (0.10 * 0.6) + (0.40 * 0.4) = 0.06 + 0.16 = 0.22/1M tokens
+  const coste_estimado_usd = (tokens_usados * 0.22) / 1_000_000
 
   console.log(`✅ Procesamiento completado en ${tiempo_total_ms}ms`)
   console.log(`💰 Tokens usados: ${tokens_usados} (real), Coste: ~$${coste_estimado_usd.toFixed(4)}`)
@@ -892,7 +892,7 @@ export async function procesarDocumentoCompleto(
     fase3: fase3Result.resultado,
     fase4: fase4Result.resultado,
     metadata: {
-      modelo: 'gpt-4o-mini',
+      modelo: 'gpt-4.1-nano',
       tokens_usados,
       tiempo_total_ms,
       coste_estimado_usd,

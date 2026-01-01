@@ -137,8 +137,8 @@ UPDATE presupuesto_control SET
   limite_mensual = 150.00; -- $150/mes (DEFAULT)
 ```
 - ✅ Equilibrio precio/rendimiento
-- ✅ ~234 docs/día con GPT-4o-mini
-- ✅ Procesamiento completo en ~10 días
+- ✅ ~350 docs/día con GPT-4.1-nano (50% más que GPT-4o-mini)
+- ✅ Procesamiento completo en ~7 días
 
 ### Para Producción Intensiva
 ```sql
@@ -148,7 +148,7 @@ UPDATE presupuesto_control SET
   limite_mensual = 300.00; -- $300/mes
 ```
 - ✅ Procesamiento rápido
-- ✅ ~468 docs/día
+- ✅ ~700 docs/día con GPT-4.1-nano
 - ⚠️ Mayor gasto mensual
 
 ---
@@ -251,23 +251,23 @@ const WARNING_THRESHOLD_PERCENT = 80 // ← Cambia aquí
 
 ## 📈 Calculadora de Presupuesto
 
-**Con GPT-4o-mini:**
-- Input: $0.15 / 1M tokens
-- Output: $0.60 / 1M tokens
+**Con GPT-4.1-nano (33% más barato que GPT-4o-mini):**
+- Input: $0.10 / 1M tokens
+- Output: $0.40 / 1M tokens
 
 **Costo estimado por documento:**
-- Nivel 1 (Clasificación): ~$0.0003
-- Nivel 2 (Extracción): ~$0.0042
-- Nivel 3 (Explicación): ~$0.0056
+- Nivel 1 (Clasificación): ~$0.0002 (33% reducción)
+- Nivel 2 (Extracción): ~$0.0028 (33% reducción)
+- Nivel 3 (Explicación): ~$0.0037 (33% reducción)
 
 **Documentos procesables según presupuesto:**
 
 | Presupuesto Diario | Docs/día (Nivel 2) | Docs/mes (aprox) |
 |--------------------|---------------------|------------------|
-| $2.00              | ~476                | ~14,280          |
-| $5.00              | ~1,190              | ~35,700          |
-| $10.00 (default)   | ~2,380              | ~71,400          |
-| $20.00             | ~4,760              | ~142,800         |
+| $2.00              | ~714                | ~21,420          |
+| $5.00              | ~1,785              | ~53,550          |
+| $10.00 (default)   | ~3,571              | ~107,130         |
+| $20.00             | ~7,142              | ~214,260         |
 
 ---
 

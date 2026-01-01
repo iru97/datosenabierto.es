@@ -171,7 +171,7 @@ export async function clasificarDocumentoConLLM(
 
   // 1. Llamada a OpenAI con structured output
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-nano',
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: USER_PROMPT(documento) }
@@ -222,9 +222,9 @@ export async function clasificarDocumentoConLLM(
   const duracion = Date.now() - inicio
   const tokens = completion.usage?.total_tokens || 0
 
-  // Pricing: GPT-4o-mini = $0.150/1M input, $0.600/1M output
+  // Pricing: GPT-4.1-nano = $0.10/1M input, $0.40/1M output
   // Aproximación: 70% input, 30% output
-  const coste = (tokens * 0.70 * 0.150 / 1_000_000) + (tokens * 0.30 * 0.600 / 1_000_000)
+  const coste = (tokens * 0.70 * 0.10 / 1_000_000) + (tokens * 0.30 * 0.40 / 1_000_000)
 
   console.log(`✅ [FASE 0] Clasificado en ${duracion}ms`)
   console.log(`   Categorías: ${categoriasConId.map(c => `${c.categoria_slug} (${(c.confidence * 100).toFixed(0)}%)`).join(', ')}`)
@@ -233,7 +233,7 @@ export async function clasificarDocumentoConLLM(
   return {
     categorias: categoriasConId,
     metadata: {
-      modelo: 'gpt-4o-mini',
+      modelo: 'gpt-4.1-nano',
       tokens,
       coste_usd: coste,
       duracion_ms: duracion

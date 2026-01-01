@@ -39,14 +39,15 @@ if (!USE_OPENAI && !USE_ANTHROPIC) {
 
 // Modelos recomendados
 export const MODELS = {
-  OPENAI_MINI: 'gpt-4o-mini', // ~$0.15/1M input, $0.60/1M output (MÁS BARATO)
+  OPENAI_NANO: 'gpt-4.1-nano', // ~$0.10/1M input, $0.40/1M output (MÁS BARATO - 33% más económico que gpt-4o-mini)
+  OPENAI_MINI: 'gpt-4o-mini', // ~$0.15/1M input, $0.60/1M output
   OPENAI_STANDARD: 'gpt-4o', // ~$2.50/1M input, $10/1M output
   CLAUDE_HAIKU: 'claude-3-5-haiku-20241022', // ~$1/1M input, $5/1M output
   CLAUDE_SONNET: 'claude-3-5-sonnet-20241022', // ~$3/1M input, $15/1M output
 } as const
 
 // Default config
-const DEFAULT_MODEL = USE_OPENAI ? MODELS.OPENAI_MINI : MODELS.CLAUDE_HAIKU
+const DEFAULT_MODEL = USE_OPENAI ? MODELS.OPENAI_NANO : MODELS.CLAUDE_HAIKU
 const DEFAULT_MAX_TOKENS = 1024
 
 // ================================================================
@@ -192,13 +193,14 @@ export function estimateCost(
 ): number {
   // Precios por 1M tokens
   const PRICING: Record<string, { input: number; output: number }> = {
+    [MODELS.OPENAI_NANO]: { input: 0.10, output: 0.40 },
     [MODELS.OPENAI_MINI]: { input: 0.15, output: 0.60 },
     [MODELS.OPENAI_STANDARD]: { input: 2.50, output: 10.00 },
     [MODELS.CLAUDE_HAIKU]: { input: 1.00, output: 5.00 },
     [MODELS.CLAUDE_SONNET]: { input: 3.00, output: 15.00 },
   }
 
-  const pricing = PRICING[model] || PRICING[MODELS.OPENAI_MINI]
+  const pricing = PRICING[model] || PRICING[MODELS.OPENAI_NANO]
 
   const inputCost = (tokens_input / 1_000_000) * pricing.input
   const outputCost = (tokens_output / 1_000_000) * pricing.output
@@ -212,7 +214,7 @@ export function estimateCost(
 
 if (USE_OPENAI) {
   console.log(`✅ LLM Provider: OpenAI (${DEFAULT_MODEL})`)
-  console.log(`💰 Cost: ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens`)
+  console.log(`💰 Cost: ~$0.10 per 1M input tokens, ~$0.40 per 1M output tokens`)
 } else if (USE_ANTHROPIC) {
   console.log(`✅ LLM Provider: Anthropic (${DEFAULT_MODEL})`)
   console.log(`💰 Cost: ~$1 per 1M input tokens, ~$5 per 1M output tokens`)
