@@ -1,0 +1,479 @@
+<template>
+  <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <!-- Loading State -->
+    <div v-if="loading" class="container mx-auto px-4 py-12">
+      <div class="animate-pulse">
+        <div class="h-12 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div class="h-6 bg-gray-200 rounded w-2/3 mb-8"></div>
+        <div class="space-y-4">
+          <div class="h-32 bg-gray-200 rounded"></div>
+          <div class="h-32 bg-gray-200 rounded"></div>
+          <div class="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="container mx-auto px-4 py-12">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <p class="text-red-800 text-lg">❌ {{ error }}</p>
+        <NuxtLink
+          to="/categorias"
+          class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          ← Volver a Categorías
+        </NuxtLink>
+      </div>
+    </div>
+
+    <!-- Category Content -->
+    <div v-else-if="categoria">
+      <!-- Breadcrumbs -->
+      <div class="bg-white border-b border-gray-200">
+        <div class="container mx-auto px-4 py-3">
+          <Breadcrumbs
+            :breadcrumbs="[
+              { label: 'Categorías', to: '/categorias' },
+              { label: categoria.nombre }
+            ]"
+          />
+        </div>
+      </div>
+
+      <!-- Header -->
+      <div
+        class="text-white py-12"
+        :style="{ backgroundColor: categoria.color }"
+      >
+        <div class="container mx-auto px-4">
+
+          <div class="flex items-center gap-4 mb-4">
+            <span class="text-6xl">{{ categoria.icono }}</span>
+            <div>
+              <h1 class="text-4xl md:text-5xl font-bold">
+                {{ categoria.nombre }}
+              </h1>
+              <p class="text-xl text-white/90 mt-2">
+                {{ categoria.descripcion }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div class="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div class="text-2xl font-bold">{{ totalDocumentos }}</div>
+              <div class="text-sm text-white/80">Documentos esta semana</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div class="text-2xl font-bold">{{ documentosImportantes }}</div>
+              <div class="text-sm text-white/80">Destacados</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div class="text-2xl font-bold">{{ ultimaActualizacion }}</div>
+              <div class="text-sm text-white/80">Última actualización</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-lg p-4">
+              <div class="text-2xl font-bold">✅</div>
+              <div class="text-sm text-white/80">100% Gratis</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección Educativa: ¿Qué es esta categoría? -->
+      <div class="container mx-auto px-4 py-8">
+        <CategoriaSEccionEducativa
+          :icono="categoria.icono"
+          :titulo="`¿Qué encontrarás en ${categoria.nombre}?`"
+          :descripcion="`Te explicamos de forma clara y sencilla qué tipo de información publicará el BOE en esta categoría`"
+          :que-encontraras="categoriaInfoData?.queEncontraras || []"
+          :para-quien="categoriaInfoData?.paraQuien || []"
+          :consejos="categoriaInfoData?.consejos || []"
+        />
+      </div>
+
+      <!-- Weekly Summary (if available) -->
+      <div v-if="estadisticaSemanal" class="container mx-auto px-4 py-8">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border-l-4" :style="{ borderLeftColor: categoria.color }">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            <span class="text-3xl mr-3">📊</span>
+            Resumen de la Semana
+          </h2>
+
+          <div v-if="estadisticaSemanal.resumen_semanal" class="mb-6">
+            <h3 class="font-semibold text-gray-700 mb-2">📋 ¿Qué ha pasado?</h3>
+            <p class="text-gray-700 leading-relaxed">
+              {{ estadisticaSemanal.resumen_semanal }}
+            </p>
+          </div>
+
+          <div v-if="estadisticaSemanal.tendencias" class="mb-6">
+            <h3 class="font-semibold text-gray-700 mb-2">📈 Tendencias</h3>
+            <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+              {{ estadisticaSemanal.tendencias }}
+            </p>
+          </div>
+
+          <div v-if="estadisticaSemanal.insights" class="bg-white/60 rounded-lg p-4">
+            <h3 class="font-semibold text-gray-700 mb-2 flex items-center">
+              <span class="text-xl mr-2">💡</span>
+              Lo Más Importante
+            </h3>
+            <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+              {{ estadisticaSemanal.insights }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="container mx-auto px-4 py-8">
+        <FiltrosInteligentes
+          :categorias="[{ value: slug, label: categoria.nombre }]"
+          :resultados-count="documentosFiltrados.length"
+          @filtros-changed="aplicarFiltros"
+        />
+      </div>
+
+      <!-- Timeline of Important Dates -->
+      <div v-if="fechasImportantes.length > 0" class="container mx-auto px-4 py-8">
+        <TimelineFechas
+          :fechas="fechasImportantes"
+          :titulo="`Fechas importantes en ${categoria.nombre}`"
+          :descripcion="'Plazos y fechas clave de los documentos de esta categoría'"
+          @ver-documento="abrirDocumento"
+        />
+      </div>
+
+      <!-- Documents List -->
+      <div class="container mx-auto px-4 py-8">
+        <!-- No documents state -->
+        <div v-if="documentosFiltrados.length === 0" class="text-center py-12">
+          <div class="text-6xl mb-4">📭</div>
+          <h3 class="text-2xl font-bold text-gray-800 mb-2">
+            {{ filtrosActivos ? 'No hay documentos con estos filtros' : 'No hay documentos esta semana' }}
+          </h3>
+          <p class="text-gray-600">
+            {{ filtrosActivos
+              ? 'Intenta cambiar los filtros para ver más documentos'
+              : 'No se han publicado documentos en esta categoría durante la última semana. Vuelve a consultar próximamente.'
+            }}
+          </p>
+        </div>
+
+        <!-- Documents Grid with Educational Cards -->
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DocumentoCardEducativo
+            v-for="documento in documentosFiltrados"
+            :key="documento.id"
+            :titulo="documento.titulo"
+            :tipo-documento="documento.tipoDocumento"
+            :explicacion="documento.explicacion"
+            :como-afecta="documento.comoAfecta"
+            :fecha-importante="documento.fechaImportante"
+            :organismo="documento.organismo"
+            :keywords="documento.keywords"
+            :url-pdf="documento.url_pdf"
+            :fecha-publicacion="documento.fecha_publicacion"
+            :categorias="documento.categorias || []"
+            @ver-detalle="abrirDetalle(documento)"
+          />
+        </div>
+
+        <!-- Load More -->
+        <div v-if="hasMore && !filtrosActivos" class="text-center mt-8">
+          <button
+            @click="loadMore"
+            :disabled="loadingMore"
+            class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ loadingMore ? 'Cargando...' : 'Cargar Más' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Document Detail Modal -->
+      <DocumentoDetalle
+        v-if="documentoSeleccionado"
+        v-model="modalAbierto"
+        :documento="documentoSeleccionado"
+      />
+
+      <!-- Help Section -->
+      <div class="container mx-auto px-4 py-12">
+        <div class="bg-gray-100 rounded-xl p-8">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            ❓ ¿Tienes dudas?
+          </h2>
+          <p class="text-gray-700 mb-4">
+            Si no entiendes algo o necesitas más información, recuerda que puedes:
+          </p>
+          <ul class="space-y-2 text-gray-700">
+            <li class="flex items-start">
+              <span class="mr-2">📄</span>
+              <span>Hacer clic en cualquier documento para ver sus explicaciones detalladas</span>
+            </li>
+            <li class="flex items-start">
+              <span class="mr-2">🔗</span>
+              <span>Acceder al PDF oficial del BOE para la información completa y legal</span>
+            </li>
+            <li class="flex items-start">
+              <span class="mr-2">📊</span>
+              <span>Revisar el resumen semanal arriba para entender el contexto general</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import {
+  getCategoriaBySlug,
+  getDocumentosByCategoria,
+  getEstadisticasSemanales,
+  type Categoria,
+  type Documento,
+  type Estadistica,
+} from '~/composables/useSupabase'
+import { getCategoriasDelDocumento } from '~/composables/useMultiCategory'
+import { transformarDocumentos, type DocumentoTransformado } from '~/utils/document-transformer'
+import { CATEGORIA_INFO } from '~/utils/categoria-info'
+import FiltrosInteligentes from '~/components/FiltrosInteligentes.vue'
+import TimelineFechas from '~/components/TimelineFechas.vue'
+import DocumentoCardEducativo from '~/components/DocumentoCardEducativo.vue'
+import DocumentoDetalle from '~/components/DocumentoDetalle.vue'
+
+// Route
+const route = useRoute()
+const slug = computed(() => route.params.slug as string)
+
+// Helper function to enrich documents with multi-category data
+async function enrichDocumentosConCategorias(documentos: DocumentoTransformado[]) {
+  return await Promise.all(
+    documentos.map(async (doc) => {
+      const categorias = await getCategoriasDelDocumento(doc.id)
+      return {
+        ...doc,
+        categorias: categorias.map(cat => ({
+          categoria_id: cat.categoria_id,
+          categoria_slug: cat.categoria?.slug || '',
+          categoria_nombre: cat.categoria?.nombre || '',
+          confidence: cat.confidence,
+          metodo: cat.clasificacion_metodo
+        }))
+      }
+    })
+  )
+}
+
+// Información educativa de la categoría
+const categoriaInfoData = computed(() => {
+  return CATEGORIA_INFO[slug.value]
+})
+
+// State - DEBE estar ANTES de los computed que lo usan
+const loading = ref(true)
+const error = ref<string | null>(null)
+const categoria = ref<Categoria | null>(null)
+const documentos = ref<DocumentoTransformado[]>([])
+const estadisticaSemanal = ref<Estadistica | null>(null)
+const totalDocumentos = ref(0)
+const documentosImportantes = ref(0)
+const page = ref(0)
+const limit = 20
+const hasMore = ref(true)
+const loadingMore = ref(false)
+
+// New state for filters and modal
+const filtrosActivos = ref<any>(null)
+const modalAbierto = ref(false)
+const documentoSeleccionado = ref<any>(null)
+
+// SEO - Ahora categoria ya está declarado
+const title = computed(() =>
+  categoria.value ? `${categoria.value.nombre} - BOE Explicado` : 'Cargando...'
+)
+
+useHead({
+  title,
+  meta: [
+    {
+      name: 'description',
+      content: computed(() =>
+        categoria.value
+          ? `${categoria.value.descripcion}. Información actualizada del BOE explicada de forma clara y sencilla.`
+          : ''
+      ),
+    },
+  ],
+})
+
+// Computed
+const ultimaActualizacion = computed(() => {
+  if (!documentos.value.length) return 'N/A'
+  const ultimaFecha = documentos.value[0].fecha_publicacion
+  return format(new Date(ultimaFecha), 'dd MMM', { locale: es })
+})
+
+// Filtered documents
+const documentosFiltrados = computed(() => {
+  if (!filtrosActivos.value) return documentos.value
+
+  let docs = [...documentos.value]
+
+  if (filtrosActivos.value.plazo) {
+    const dias = parseInt(filtrosActivos.value.plazo)
+    docs = docs.filter((d: any) => {
+      if (!d.fechaImportante?.diasRestantes) return false
+      return d.fechaImportante.diasRestantes <= dias
+    })
+  }
+
+  if (filtrosActivos.value.publicacion) {
+    const dias = parseInt(filtrosActivos.value.publicacion)
+    const fechaLimite = new Date()
+    fechaLimite.setDate(fechaLimite.getDate() - dias)
+    docs = docs.filter((d: any) => {
+      const fechaPub = new Date(d.fecha_publicacion)
+      return fechaPub >= fechaLimite
+    })
+  }
+
+  if (filtrosActivos.value.organismo) {
+    docs = docs.filter((d: any) =>
+      d.organismo?.toLowerCase().includes(filtrosActivos.value.organismo.toLowerCase())
+    )
+  }
+
+  return docs
+})
+
+// Important dates timeline
+const fechasImportantes = computed(() => {
+  const fechas: any[] = []
+
+  documentos.value.forEach((doc: any) => {
+    if (doc.fechas && Array.isArray(doc.fechas)) {
+      doc.fechas.forEach((fecha: any) => {
+        fechas.push({
+          ...fecha,
+          documentoId: doc.id,
+          documentoTitulo: doc.titulo,
+          urlPdf: doc.url_pdf,
+        })
+      })
+    }
+  })
+
+  return fechas.sort((a, b) => {
+    const urgenciaOrder: any = { URGENTE: 0, PRÓXIMO: 1, NUEVO: 2, NORMAL: 3 }
+    const urgenciaCompare = urgenciaOrder[a.urgencia] - urgenciaOrder[b.urgencia]
+    if (urgenciaCompare !== 0) return urgenciaCompare
+    return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+  })
+})
+
+// Methods
+async function fetchCategoria() {
+  loading.value = true
+  error.value = null
+
+  try {
+    // Fetch categoria
+    const cat = await getCategoriaBySlug(slug.value)
+    if (!cat) {
+      error.value = 'Categoría no encontrada'
+      return
+    }
+    categoria.value = cat
+
+    // Fetch estadísticas semanales
+    const estadisticas = await getEstadisticasSemanales(cat.id, 1)
+    if (estadisticas.length > 0) {
+      estadisticaSemanal.value = estadisticas[0]
+      totalDocumentos.value = estadisticas[0].total_documentos
+      documentosImportantes.value = estadisticas[0].documentos_importantes
+    }
+
+    // Fetch documentos
+    await fetchDocumentos()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Error desconocido'
+    console.error('Error fetching categoria:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchDocumentos() {
+  if (!categoria.value) return
+
+  const offset = page.value * limit
+
+  // Get last 30 days
+  const hasta = new Date()
+  const desde = new Date()
+  desde.setDate(desde.getDate() - 30)
+
+  const result = await getDocumentosByCategoria(categoria.value.id, {
+    limit,
+    offset,
+    desde,
+    hasta,
+  })
+
+  // Transformar documentos para UI
+  const docsTransformados = transformarDocumentos(result.data)
+
+  // Enrich with multi-category data
+  const docsEnriquecidos = await enrichDocumentosConCategorias(docsTransformados)
+
+  if (page.value === 0) {
+    documentos.value = docsEnriquecidos
+  } else {
+    documentos.value.push(...docsEnriquecidos)
+  }
+
+  hasMore.value = result.data.length === limit
+}
+
+async function loadMore() {
+  loadingMore.value = true
+  page.value++
+  await fetchDocumentos()
+  loadingMore.value = false
+}
+
+function aplicarFiltros(filtros: any) {
+  filtrosActivos.value = Object.values(filtros).some((v) => v !== '') ? filtros : null
+}
+
+function abrirDetalle(documento: any) {
+  documentoSeleccionado.value = documento
+  modalAbierto.value = true
+}
+
+function abrirDocumento(documentoId: string) {
+  const doc = documentos.value.find((d: any) => d.id === documentoId)
+  if (doc) {
+    abrirDetalle(doc)
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchCategoria()
+})
+
+// Watch slug changes
+watch(slug, () => {
+  page.value = 0
+  documentos.value = []
+  fetchCategoria()
+})
+</script>

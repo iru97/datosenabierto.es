@@ -2,6 +2,21 @@ export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: false },
   modules: ["@nuxtjs/tailwindcss"],
+
+  // Runtime config - Variables de entorno disponibles en cliente y servidor
+  runtimeConfig: {
+    // Private keys - Solo disponibles en server-side
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    openaiApiKey: process.env.OPENAI_API_KEY,
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+
+    // Public keys - Disponibles en cliente y servidor
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    },
+  },
+
   app: {
     head: {
       title: "BOE Viewer - Consulta el Boletín Oficial del Estado",

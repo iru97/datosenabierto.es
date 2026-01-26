@@ -6,23 +6,38 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test:processing": "tsx scripts/test-processing.ts",
+    "test:mock": "tsx scripts/test-processing-mock.ts",
+    "test:clasificador": "tsx scripts/test-clasificador-llm.ts",
+    "test:multi-category": "tsx scripts/test-multi-category-migration.ts",
+    "test:parser": "tsx scripts/test-parser.ts",
+    "inspect:xml": "tsx scripts/inspect-xml.ts"
   },
   "dependencies": {
-    "nuxt": "^3.13.0",
+    "@anthropic-ai/sdk": "^0.70.1",
     "@heroicons/vue": "^2.1.1",
     "@nuxtjs/tailwindcss": "^6.11.4",
+    "@supabase/supabase-js": "^2.84.0",
     "@vueuse/core": "^10.9.0",
     "chart.js": "^4.4.2",
-    "vue-chartjs": "^5.3.0",
     "date-fns": "^2.30.0",
     "date-fns-tz": "^2.0.0",
-    "v-calendar": "^3.1.2",
+    "dotenv": "^17.2.3",
+    "fast-xml-parser": "^4.3.5",
     "h3": "^1.11.1",
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^2.7.0",
+    "nuxt": "^3.13.0",
     "ofetch": "^1.3.3",
-    "fast-xml-parser": "^4.3.5"
+    "openai": "^6.9.1",
+    "undici": "^7.16.0",
+    "v-calendar": "^3.1.2",
+    "vue-chartjs": "^5.3.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.28"
+    "@netlify/functions": "^5.1.0",
+    "@types/node": "^20.11.28",
+    "tsx": "^4.20.6"
   }
 }
